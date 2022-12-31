@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!--  Import Halfmoon -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/halfmoon/css/halfmoon-variables.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/halfmoon/css/halfmoon.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/halfmoon/js/halfmoon.min.js"></script>
+    <title>ALBW Randomizer</title>
+    <style>
+      html,
+      body {
+        font-family: "Roboto", sans-serif;
+        background: #333;
+        color: #f5f5f5;
+      }
+    </style>
+    <script>
+      window.onload = () => {
+        if (
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        ) {
+          halfmoon.toggleDarkMode();
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      const onlyUnique = (value, index, self) => {
+        return self.indexOf(value) === index;
+      };
+      const progressiveItems = ["Glove", "Sword", "Bracelet", "Mail"];
+
+      const mapToIcon = (itemName) => {
+        const conversion = (itemName) => {
+          if (itemName.includes("Ore")) {
+            return `Master Ore`;
+          }
+          if (itemName.includes("Compass")) {
+            return `Compass`;
+          }
+          const progressiveItem = progressiveItems.find((pItem) =>
+            itemName.includes(pItem)
+          );
+          if (progressiveItem) {
+            return `Progressive ${progressiveItem}`;
+          }
+          if (
+            itemName.includes("Key") &&
+            (itemName.includes("Big") || itemName.includes("Sanctuary"))
+          ) {
+            return `Big Key`;
+          }
+          if (itemName.includes("Key") && itemName.includes("Small")) {
+            return `Small Key`;
+          }
+          return itemName;
+        };
+
+        return `./items/${conversion(itemName)}.png`;
+      };
+
+      import init, { Cartridge } from "./albw_wasm.js";
+      await init();
+      window.cartridge = new Cartridge(
+        {
+          logic: {
+            mode: "Normal",
+            assured_weapon: false,
+            bell_in_shop: false,
+            pouch_in_shop: false,
+            boots_in_shop: false,
+            minigames_excluded: true,
+            swordless_mode: false,
+            super_items: true,
+            skip_trials: true,
+            bow_of_light_in_castle: false,
+            lampless: false,
+          },
+          options: {
+            night_mode: false,
+          },
+          exclusions: {},
+          exclude: {
+            hyrule: {},
+            lorule: {},
+            dungeons: {},
+          },
+        },
+        2832764187
+      );
+      console.log(window.cartridge);
+      console.log(cartridge.get_trash_item_names());
+      console.log(cartridge.get_progression_item_names());
+      console.log(cartridge.get_available_checks([]));
+      console.log(cartridge.get_available_checks(["Bow01"]));
+
+      const filterAndMapItems = async () => {
+        const removePrefix = ["Rupee"];
+        return (
+          await Promise.all(
+            cartridge
+              .get_progression_item_names()
+              .filter((itemName) => {
+                return !removePrefix.some((prefix) =>
+                  itemName.startsWith(prefix)
+                );
+              })
+              .map((itemName) => {
+                return itemName
+                  .replace(/\d+/, "")
+                  .replace(/([A-Z])/g, " $1")
+                  .trim();
+              })
+              .filter(onlyUnique)
+              .map(
+                (itemName) =>
+                  new Promise(async (resolve, reject) => {
+                    const iconName = mapToIcon(itemName);
+                    let requestSuccess = false;
+                    try {
+                      const response = await fetch(iconName);
+                      if (response.ok) {
+                        requestSuccess = true;
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+                    resolve([itemName, iconName, requestSuccess]);
+                  })
+              )
+          )
+        ).map((mapping) => mapping.splice(0, 2));
+      };
+
+      const createElement = ([itemName, iconName]) => {
+        // create halfmoon css card with left-aligned and vertically centered image and title on same line
+        const card = document.createElement("div");
+        card.classList.add("card", "d-flex", "align-items-center");
+
+        // add image to card
+        const cardImage = document.createElement("img");
+        cardImage.src = iconName;
+        cardImage.style.marginRight = "10px";
+        card.appendChild(cardImage);
+        // add text to card
+        const cardText = document.createElement("p");
+        cardText.classList.add("card-title");
+        cardText.innerText = itemName;
+        card.appendChild(cardText);
+        
+        // add hidden checkbox that gets toggled when card is clicked
+        const cardCheckbox = document.createElement("input");
+        cardCheckbox.type = "checkbox";
+        cardCheckbox.classList.add("d-none");
+        cardCheckbox.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            card.classList.add("bg-primary");
+          } else {
+            card.classList.remove("bg-primary");
+          }
+        });
+        card.appendChild(cardCheckbox);
+        // add click event listener to card
+        card.addEventListener("click", () => {
+          cardCheckbox.checked = !cardCheckbox.checked;
+          cardCheckbox.dispatchEvent(new Event("change"));
+        });
+        return card;
+      };
+      const progressionItems = await filterAndMapItems();
+      progressionItems
+        .map(createElement)
+        .forEach((element) =>
+          document.querySelector("#progressive-item-list").appendChild(element)
+        );
+    </script>
+
+    <div class="page-wrapper">
+      <!-- Content wrapper -->
+      <div class="content-wrapper">
+        <div id="progressive-item-list"></div>
+        <style>
+          #progressive-item-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            padding: 1rem;
+          }
+
+          #progressive-item-list > div {
+            display: block;
+          }
+
+#progressive-item-list img {
+    width: 32px;
+    height: 32px;
+}
+
+#progressive-item-list p {
+    margin-bottom: 0;
+}
+
+          #progressive-item-list .card {
+            margin: 1em;
+            padding: 1em;
+          }
+        </style>
+      </div>
+    </div>
+  </body>
+</html>

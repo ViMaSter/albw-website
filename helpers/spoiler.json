@@ -1,0 +1,335 @@
+{
+  "seed": 2832764187,
+  "settings": {
+    "logic": {
+      "mode": "Normal",
+      "assured_weapon": false,
+      "bell_in_shop": false,
+      "pouch_in_shop": false,
+      "boots_in_shop": false,
+      "minigames_excluded": true,
+      "swordless_mode": false,
+      "super_items": true,
+      "skip_trials": true,
+      "bow_of_light_in_castle": false,
+      "lampless": false
+    },
+    "options": {
+      "night_mode": false
+    },
+    "exclusions": {}
+  },
+  "layout": {
+    "Hyrule": {
+      "Kakariko Village": {
+        "Bee Guy": "Red Rupee",
+        "Bee Guy (Golden Bee)": "Red Rupee",
+        "Cucco Ranch": "Monster Tail",
+        "Fortune Teller": "Hammer",
+        "Jail": "Red Rupee",
+        "Merchant (Left)": "Monster Tail",
+        "Merchant (Right)": "Piece of Heart",
+        "Milk Bar Owner": "Heart Container",
+        "Shady Guy": "Stamina Scroll",
+        "Stylish Woman": "Red Rupee",
+        "Well (Chest)": "Piece of Heart",
+        "Well (Upper)": "Red Rupee"
+      },
+      "Eastern Ruins": {
+        "Armos Chest": "Gold Rupee",
+        "Cave": "Red Rupee",
+        "Hookshot Chest": "Monster Tail",
+        "Merge Chest": "Green Rupee",
+        "Merge Treasure Dungeon": "Purple Rupee",
+        "Pegs (South)": "Lamp"
+      },
+      "Lost Woods": {
+        "Alcove": "Blue Rupee",
+        "Lost Woods Big Rock Chest": "Flippers",
+        "Master Sword Pedestal": "Monster Guts"
+      },
+      "Zoras Domain": {
+        "Behind Waterfall": "Red Rupee",
+        "Zora Queen": "Bottle",
+        "Zora's Domain Ledge Chest": "Gold Rupee"
+      },
+      "Death Mountain": {
+        "Blocked Cave": "Silver Rupee",
+        "Bouldering Guy": "Piece of Heart",
+        "Death Mountain West Ledge": "Piece of Heart",
+        "Fairy Cave": "Purple Rupee",
+        "Fire Cave Pillar": "Silver Rupee",
+        "First Cave": "Red Rupee",
+        "Floating Island": "Heart Container",
+        "Hookshot Treasure Dungeon": "Monster Guts",
+        "Rock Cave (Pegs)": "Smooth Gem",
+        "Rock Cave (Top)": "Piece of Heart",
+        "Spectacle Rock": "Silver Rupee"
+      },
+      "Hyrule Field": {
+        "Behind Blacksmith": "Silver Rupee",
+        "Blacksmith": "Silver Rupee",
+        "Blacksmith Cave": "Piece of Heart",
+        "Castle (Indoors)": "Piece of Heart",
+        "Castle Balcony": "Blue Rupee",
+        "Castle Rocks": "Gold Rupee",
+        "Clean Rocks": "Silver Rupee",
+        "Dampe": "Pegasus Boots",
+        "Haunted Grove Tree Stump": "Master Ore",
+        "Ravio (1)": "Piece of Heart",
+        "Ravio (2)": "Heart Container",
+        "Ravio (3)": "Premium Milk",
+        "Ravio (4)": "Purple Rupee",
+        "Ravio (5)": "Piece of Heart",
+        "Ravio (6)": "Green Rupee",
+        "Ravio (7)": "Piece of Heart",
+        "Ravio (8)": "Red Rupee",
+        "Ravio (9)": "Silver Rupee",
+        "Rosso": "Sand Rod",
+        "Rosso Cave": "Silver Rupee",
+        "Rupee Rush (Hyrule)": "Red Rupee",
+        "Sanctuary Cave": "Red Rupee",
+        "Sanctuary Pegs": "Silver Rupee",
+        "Sanctuary Treasure Dungeon": "Purple Rupee"
+      },
+      "Southern Ruins": {
+        "Behind Pillars": "Master Ore",
+        "Runaway Item Seller": "Net",
+        "Southern Ruins Ledge": "Heart Container",
+        "Treasure Room": "Silver Rupee"
+      },
+      "Hyrule Sanctuary": {
+        "[HS] Entrance": "Monster Horn",
+        "[HS] Ledge": "Small Key",
+        "[HS] Lower Chest": "Blue Rupee",
+        "[HS] Upper Chest": "Hookshot"
+      },
+      "Lake Hylia": {
+        "Bird Lover": "Monster Guts",
+        "Hyrule Hotfoot": "Monster Guts",
+        "Lake Hylia Ledge Chest": "Heart Container",
+        "Secret Cave": "Silver Rupee",
+        "Shore": "Message in a Bottle",
+        "Torch Cave": "Monster Tail"
+      }
+    },
+    "Lorule": {
+      "Lorule Field": {
+        "Big Bomb Cave": "Monster Guts",
+        "Blacksmith (Lorule)": "Blue Rupee",
+        "Boots Treasure Dungeon": "Piece of Heart",
+        "Great Rupee Fairy": "Progressive Mail",
+        "Hookshot Ledge": "Progressive Glove",
+        "Octoball Derby": "Piece of Heart",
+        "Rupee Rush (Lorule)": "Heart Container",
+        "Swamp Cave (Left)": "Blue Rupee",
+        "Swamp Cave (Middle)": "Piece of Heart",
+        "Swamp Cave (Right)": "Net",
+        "Thief Girl Cave": "Heart Container",
+        "Vacant House": "Red Rupee"
+      },
+      "Dark Ruins": {
+        "Dark Maze Chest": "Progressive Sword",
+        "Dark Maze Ledge": "Silver Rupee",
+        "Dark Ruins Lakeview Chest": "Piece of Heart",
+        "Hinox (1)": "Silver Rupee",
+        "Hinox (2)": "Blue Rupee",
+        "Hinox (3)": "Blue Rupee",
+        "Hinox (4)": "Fire Rod",
+        "Hinox (5)": "Silver Rupee",
+        "Hinox (6)": "Purple Rupee"
+      },
+      "Skull Woods": {
+        "Canyon House": "Red Rupee",
+        "Cucco Shack": "Lamp",
+        "Skull Woods Outdoor Chest": "Bottle"
+      },
+      "Death Mountain": {
+        "Behind Ice Gimos (East)": "Purple Rupee",
+        "Defeat Ice Gimos (West)": "Master Ore",
+        "Ledge (East)": "Silver Rupee",
+        "Ledge (West)": "Boomerang",
+        "Treacherous Tower (Intermediate)": "Piece of Heart"
+      },
+      "Graveyard": {
+        "Peninsula Chest": "Purple Rupee",
+        "Philosopher's Cave Big Chest": "Red Rupee"
+      },
+      "Misery Mire": {
+        "Misery Mire Ledge": "Silver Rupee",
+        "Sand Rod Treasure Dungeon": "Hylian Shield"
+      },
+      "Lorule Lake": {
+        "Lorule Lake NW Chest": "Purple Rupee",
+        "Turtle Rock Left Balcony": "Silver Rupee"
+      }
+    },
+    "Dungeons": {
+      "Thieves Hideout": {
+        "Stalblind": "Purple Rupee",
+        "[TH] (B1) Behind Wall": "Bottle",
+        "[TH] (B1) Big Chest (Entrance)": "Big Key",
+        "[TH] (B1) Grate Chest": "Compass",
+        "[TH] (B1) Jail Cell": "Small Key",
+        "[TH] (B2) Eyegores": "Heart Container",
+        "[TH] (B2) Grate Chest (Fall)": "Silver Rupee",
+        "[TH] (B2) Jail Cell": "Master Ore",
+        "[TH] (B2) Switch Puzzle Room": "Silver Rupee",
+        "[TH] (B3) Big Chest (Hidden)": "Piece of Heart",
+        "[TH] (B3) Underwater": "Red Rupee"
+      },
+      "House of Gales": {
+        "[HoG] (1F) Blue Bari Room": "Small Key",
+        "[HoG] (1F) Blue Bari Room (Bottom Left)": "Small Key",
+        "[HoG] (1F) Fire Bubbles": "Silver Rupee",
+        "[HoG] (1F) Switch Room": "Small Key",
+        "[HoG] (1F) Torches": "Small Key",
+        "[HoG] (2F) Big Chest": "Bottle",
+        "[HoG] (2F) Fire Ring": "Silver Rupee",
+        "[HoG] (2F) Narrow Ledge": "Compass",
+        "[HoG] (3F) Fire Bubbles": "Purple Rupee",
+        "[HoG] (3F) Rat Room": "Big Key",
+        "[HoG] Margomill": "Monster Guts"
+      },
+      "Tower of Hera": {
+        "[ToH] (11F) Big Chest": "Blue Rupee",
+        "[ToH] (1F) Center": "Piece of Heart",
+        "[ToH] (1F) Outside": "Silver Rupee",
+        "[ToH] (3F) Platform": "Small Key",
+        "[ToH] (5F) Red/Blue Switches": "Gold Rupee",
+        "[ToH] (6F) Left Mole": "Small Key",
+        "[ToH] (6F) Right Mole": "Big Key",
+        "[ToH] (7F) Outside (Ledge)": "Silver Rupee",
+        "[ToH] (8F) Fairy Room": "Compass",
+        "[ToH] Moldorm": "Piece of Heart"
+      },
+      "Dark Palace": {
+        "[PoD] (1F) Fall From 2F": "Piece of Heart",
+        "[PoD] (1F) Hidden Room (Lower)": "Small Key",
+        "[PoD] (1F) Hidden Room (Upper)": "Silver Rupee",
+        "[PoD] (1F) Narrow Ledge": "Small Key",
+        "[PoD] (1F) Near Entrance": "Silver Rupee",
+        "[PoD] (1F) Switch Puzzle": "Small Key",
+        "[PoD] (2F) Alcove": "Monster Guts",
+        "[PoD] (2F) Big Chest (Hidden)": "Silver Rupee",
+        "[PoD] (B1) Big Chest (Switches)": "Compass",
+        "[PoD] (B1) Fall From 1F": "Gold Rupee",
+        "[PoD] (B1) Helmasaur Room": "Big Key",
+        "[PoD] (B1) Helmasaur Room (Fall)": "Tornado Rod",
+        "[PoD] (B1) Maze": "Small Key",
+        "[PoD] Gemesaur King": "Silver Rupee"
+      },
+      "Lorule Castle": {
+        "[LC] (1F) Center": "Small Key",
+        "[LC] (1F) Ledge": "Small Key",
+        "[LC] (2F) Hidden Path": "Purple Rupee",
+        "[LC] (2F) Ledge": "Silver Rupee",
+        "[LC] (2F) Near Torches": "Small Key",
+        "[LC] (3F) Ball Trial (Chest)": "Silver Rupee",
+        "[LC] (3F) Ball Trial (Puzzle)": "Small Key",
+        "[LC] (3F) Bomb Trial (Behind Rock)": "Progressive Sword",
+        "[LC] (3F) Bomb Trial (Chest)": "Bow",
+        "[LC] (4F) Center": "Compass",
+        "[LC] (4F) Hidden Path": "Small Key",
+        "[LC] (4F) Hookshot Trial (Chest)": "Heart Container",
+        "[LC] (4F) Hookshot Trial (Eyes)": "Silver Rupee",
+        "[LC] (4F) Lamp Trial": "Progressive Sword",
+        "[LC] Zelda": "Heart Container"
+      },
+      "Eastern Palace": {
+        "[EP] (1F) Defeat Popos": "Bell",
+        "[EP] (1F) Hidden Door": "Compass",
+        "[EP] (1F) Near Entrance": "Small Key",
+        "[EP] (1F) Outside (East)": "Big Key",
+        "[EP] (1F) Outside (West)": "Silver Rupee",
+        "[EP] (1F) Switch Puzzle": "Progressive Bracelet",
+        "[EP] (2F) Ball Room": "Gold Rupee",
+        "[EP] (2F) Big Chest": "Silver Rupee",
+        "[EP] (2F) Defeat Popos": "Progressive Bracelet",
+        "[EP] (2F) Switch Room": "Small Key",
+        "[EP] (3F) After Cutscene": "Purple Rupee",
+        "[EP] (3F) Outside (North)": "Red Rupee",
+        "[EP] Yuga": "Purple Rupee"
+      },
+      "Skull Woods": {
+        "[SW] (B1) Big Chest (Eyes)": "Compass",
+        "[SW] (B1) Big Chest (Upper)": "Bow of Light",
+        "[SW] (B1) Gibdo Room (Hole)": "Progressive Glove",
+        "[SW] (B1) Gibdo Room (Lower)": "Small Key",
+        "[SW] (B1) Grate Room": "Small Key",
+        "[SW] (B1) South Chest": "Small Key",
+        "[SW] (B2) Moving Platform Room": "Big Key",
+        "[SW] Knucklemaster": "Bottle"
+      },
+      "Ice Ruins": {
+        "[IR] (1F) Hidden Chest": "Compass",
+        "[IR] (B1) East Chest": "Silver Rupee",
+        "[IR] (B1) Narrow Ledge": "Small Key",
+        "[IR] (B1) Upper Chest": "Small Key",
+        "[IR] (B2) Far North": "Red Rupee",
+        "[IR] (B3) Big Chest (Puzzle)": "Gold Rupee",
+        "[IR] (B3) Grate Chest (Left)": "Small Key",
+        "[IR] (B3) Grate Chest (Right)": "Big Key",
+        "[IR] (B4) Ice Pillar": "Red Rupee",
+        "[IR] (B4) Narrow Platform": "Monster Guts",
+        "[IR] (B4) Southeast Chest (Fall)": "Purple Rupee",
+        "[IR] (B4) Southwest Chest (Fall)": "Silver Rupee",
+        "[IR] (B4) Switches": "Piece of Heart",
+        "[IR] (B5) Big Chest": "Silver Rupee",
+        "[IR] Dharkstare": "Monster Horn"
+      },
+      "Turtle Rock": {
+        "[TR] (1F) Center": "Small Key",
+        "[TR] (1F) Defeat Flamolas": "Gold Rupee",
+        "[TR] (1F) Grate Chest": "Compass",
+        "[TR] (1F) Northeast Ledge": "Piece of Heart",
+        "[TR] (1F) Portal Room (Northwest)": "Small Key",
+        "[TR] (1F) Southeast Chest": "Silver Rupee",
+        "[TR] (B1) Big Chest (Center)": "Piece of Heart",
+        "[TR] (B1) Big Chest (Top)": "Piece of Heart",
+        "[TR] (B1) Grate Chest (Small)": "Small Key",
+        "[TR] (B1) Northeast Room": "Big Key",
+        "[TR] (B1) Platform": "Purple Rupee",
+        "[TR] Grinexx": "Silver Rupee"
+      },
+      "Desert Palace": {
+        "Zaganaga": "Progressive Mail",
+        "[DP] (1F) Behind Rocks": "Small Key",
+        "[DP] (1F) Big Chest (Behind Wall)": "Small Key",
+        "[DP] (1F) Entrance": "Hint Glasses",
+        "[DP] (1F) Sand Room (North)": "Progressive Sword",
+        "[DP] (1F) Sand Room (South)": "Silver Rupee",
+        "[DP] (1F) Sand Switch Room": "Pouch",
+        "[DP] (2F) Beamos Room": "Compass",
+        "[DP] (2F) Big Chest (Puzzle)": "Big Key",
+        "[DP] (2F) Leever Room": "Small Key",
+        "[DP] (2F) Red/Blue Switches": "Small Key",
+        "[DP] (2F) Under Rock (Ball Room)": "Monster Guts",
+        "[DP] (2F) Under Rock (Left)": "Piece of Heart",
+        "[DP] (2F) Under Rock (Right)": "Piece of Heart",
+        "[DP] (3F) Armos Room": "Purple Rupee",
+        "[DP] (3F) Behind Falling Sand": "Small Key"
+      },
+      "Lorule Sanctuary": {
+        "[LS] Entrance Chest": "Small Key",
+        "[LS] Ledge": "Red Rupee",
+        "[LS] Lower Chest": "Bee Badge",
+        "[LS] Upper Chest": "Purple Rupee"
+      },
+      "Swamp Palace": {
+        "[SP] (1F) Big Chest (Fire)": "Bombs",
+        "[SP] (1F) East Room": "Small Key",
+        "[SP] (1F) Water Puzzle": "Big Key",
+        "[SP] (1F) West Room": "Small Key",
+        "[SP] (B1) Big Chest (Secret)": "Purple Rupee",
+        "[SP] (B1) Center": "Monster Horn",
+        "[SP] (B1) Gyorm": "Small Key",
+        "[SP] (B1) Raft Room (Left)": "Piece of Heart",
+        "[SP] (B1) Raft Room (Pillar)": "Ice Rod",
+        "[SP] (B1) Raft Room (Right)": "Small Key",
+        "[SP] (B1) Waterfall Room": "Compass",
+        "[SP] Arrghus": "Piece of Heart"
+      }
+    }
+  }
+}
