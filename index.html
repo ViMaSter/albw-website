@@ -259,6 +259,8 @@
         checkList.innerHTML = "";
         availableCheckCards.forEach((element) => document.querySelector("#check-list").appendChild(element));
       }
+
+      refreshChecks();
     </script>
 
     <div class="page-wrapper">
@@ -293,13 +295,23 @@
             height: 100%;
           }
 
+          /* vertical list of items as flexbox */
           .checklist {
-            display: grid;
-            grid-template-columns: 1fr;
-            padding: 1rem;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
             height: 100%;
           }
+
+          .checklist .card
+          {
+            order: 1;
+          }
+
+          .checklist .card.bg-primary
+          {
+            order: 2;
+          }
+
 
           .checklist img {
               width: 32px;
