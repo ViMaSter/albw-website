@@ -44,20 +44,22 @@
       const onlyUnique = (value, index, self) => {
         return self.indexOf(value) === index;
       };
-      
+
       const internalNameToDisplayName = (internalName) => {
-        if (!internalName.includes("Key") && !internalName.includes("Bottle"))
-        {
-          if (internalName.includes("02"))
-          {
-            return internalName.replace("02", " (Upgrade)");
+        if (!internalName.includes("Key") && !internalName.includes("Bottle")) {
+          if (internalName.includes("02")) {
+            return internalName
+              .replace("02", " (Upgrade)")
+              .replace(/\d+/, "")
+              .replace(/([A-Z])/g, " $1")
+              .trim();
           }
         }
-        
+
         return internalName
-                       .replace(/\d+/, "")
-                       .replace(/([A-Z])/g, " $1")
-                       .trim();
+          .replace(/\d+/, "")
+          .replace(/([A-Z])/g, " $1")
+          .trim();
       };
 
       const displayNameToIconPath = (itemName) => {
@@ -93,41 +95,62 @@
       import init, { Cartridge } from "./albw_wasm.js";
       await init();
 
-      class GameInfo
-      {
-        constructor(settings, seed)
-        {
+      class GameInfo {
+        constructor(settings, seed) {
           this.seed = seed;
           this.settings = settings;
           this.cartridge = new Cartridge(settings, seed);
           this.loadProgress();
         }
 
-        saveItemProgress(collectedItemNames)
-        {
+        resetProgress() {
+          if (
+            !confirm("Are you sure you want to reset ALL items and checks?")
+          ) {
+            return;
+          }
+          localStorage.removeItem("collectedItemNames." + this.seed);
+          localStorage.removeItem("visitedCheckNames." + this.seed);
+          refreshItems();
+          refreshChecks();
+        }
+
+        saveItemProgress(collectedItemNames) {
           // store collectedItemNames in localStorage
-          localStorage.setItem('collectedItemNames.'+this.seed, JSON.stringify(collectedItemNames));
+          localStorage.setItem(
+            "collectedItemNames." + this.seed,
+            JSON.stringify(collectedItemNames)
+          );
         }
 
         // store visitedChecks in local storage
-        saveCheckProgress(visitedCheckNames)
-        {
-          localStorage.setItem('visitedCheckNames.'+this.seed, JSON.stringify(visitedCheckNames));
+        saveCheckProgress(visitedCheckNames) {
+          localStorage.setItem(
+            "visitedCheckNames." + this.seed,
+            JSON.stringify(visitedCheckNames)
+          );
         }
 
-        loadProgress()
-        {
+        loadProgress() {
           return {
-            collectedItemNames: JSON.parse(localStorage.getItem('collectedItemNames.'+this.seed)) || [],
-            visitedCheckNames: JSON.parse(localStorage.getItem('visitedCheckNames.'+this.seed)) || [],
-          }
+            collectedItemNames:
+              JSON.parse(
+                localStorage.getItem("collectedItemNames." + this.seed)
+              ) || [],
+            visitedCheckNames:
+              JSON.parse(
+                localStorage.getItem("visitedCheckNames." + this.seed)
+              ) || [],
+          };
         }
 
         async getListOfUsefulProgressionItems() {
           const removeRupees = (itemName) => !itemName.includes("Rupee");
           const displayNameToIconAndRequest = ([internalName, displayName]) =>
             new Promise(async (resolve, reject) => {
-              const iconPath = displayNameToIconPath(displayName.replace(/ \(.*/, ""));
+              const iconPath = displayNameToIconPath(
+                displayName.replace(/ \(.*/, "")
+              );
               let requestSuccess = false;
               try {
                 const response = await fetch(iconPath);
@@ -137,26 +160,35 @@
               } catch (e) {
                 console.error(e);
               }
-              resolve({internalName, displayName, iconPath, requestSuccess});
-            }
-          );
+              resolve({ internalName, displayName, iconPath, requestSuccess });
+            });
 
-          const getUniqueWithoutNumber = (value, index, self) => 
-            onlyUnique(
-              value.internalName.replace(/\d+/, ""), index, self.map(itemData=>itemData.internalName.replace(/\d+/, ""))
+          const getUniqueWithoutNumber = (value, index, self) =>
+          {
+            if (value.displayName.includes("Ravio"))
+            {
+              return () => true;
+            }
+            return onlyUnique(
+              value.internalName.replace(/\d+/, ""),
+              index,
+              self.map((itemData) => itemData.internalName.replace(/\d+/, ""))
             );
+          }
 
           return (
-              await Promise.all(
-                this.cartridge
-                  .get_progression_item_names()
-                  .filter(removeRupees)
-                  .map(internalName => [internalName, internalNameToDisplayName(internalName)])
-                  .map(displayNameToIconAndRequest)
-              )
+            await Promise.all(
+              this.cartridge
+                .get_progression_item_names()
+                .filter(removeRupees)
+                .map((internalName) => [
+                  internalName,
+                  internalNameToDisplayName(internalName),
+                ])
+                .map(displayNameToIconAndRequest)
             )
-            .filter(getUniqueWithoutNumber);
-        };
+          ).filter(getUniqueWithoutNumber);
+        }
       }
 
       window.gameInfo = new GameInfo(
@@ -195,68 +227,94 @@
 
       // @TODO: Explicitly add Ravios bracelet
 
-      const getCurrentlyCollectedItemCards = () => Array.from(document.querySelectorAll("#progressive-item-list .card")).map(e=>{return {
-        checked: e.querySelector("input").checked,
-        internalName: e.dataset.internalName
-      }});
-      const createElement = ({internalName, displayName, iconPath}) => {
-        // create halfmoon css card with left-aligned and vertically centered image and title on same line
-        const card = document.createElement("div");
-        card.classList.add("card", "d-flex", "align-items-center");
-        card.dataset.internalName = internalName;
-
-        // add image to card
-        const cardImage = document.createElement("img");
-        cardImage.src = iconPath;
-        cardImage.style.marginRight = "10px";
-        card.appendChild(cardImage);
-        // add text to card
-        const cardText = document.createElement("p");
-        cardText.classList.add("card-body");
-        cardText.innerText = displayName;
-        card.appendChild(cardText);
-        
-        // add hidden checkbox that gets toggled when card is clicked
-        const cardCheckbox = document.createElement("input");
-        cardCheckbox.type = "checkbox";
-        cardCheckbox.classList.add("d-none");
-        cardCheckbox.addEventListener("change", (e) => {
-          if (e.target.checked) {
-            card.classList.add("bg-primary");
-          } else {
-            card.classList.remove("bg-primary");
-          }
+      const getCurrentlyCollectedItemCards = () =>
+        Array.from(
+          document.querySelectorAll("#progressive-item-list .card")
+        ).map((e) => {
+          return {
+            checked: e.querySelector("input").checked,
+            internalName: e.dataset.internalName,
+          };
         });
-        card.appendChild(cardCheckbox);
-        // add click event listener to card
-        card.addEventListener("click", () => {
-          // @TODO: Persist progression for current seed inside local storage
-          cardCheckbox.checked = !cardCheckbox.checked;
+
+      const refreshItems = async () => {
+        const createElement = ({ internalName, displayName, iconPath }) => {
+          // create halfmoon css card with left-aligned and vertically centered image and title on same line
+          const card = document.createElement("div");
+          card.classList.add("card", "d-flex", "align-items-center");
+          card.dataset.internalName = internalName;
+
+          // add image to card
+          const cardImage = document.createElement("img");
+          cardImage.src = iconPath;
+          cardImage.style.marginRight = "10px";
+          card.appendChild(cardImage);
+          // add text to card
+          const cardText = document.createElement("p");
+          cardText.classList.add("card-body");
+          cardText.innerText = displayName;
+          card.appendChild(cardText);
+
+          // add hidden checkbox that gets toggled when card is clicked
+          const cardCheckbox = document.createElement("input");
+          cardCheckbox.type = "checkbox";
+          cardCheckbox.classList.add("d-none");
+          cardCheckbox.addEventListener("change", (e) => {
+            if (e.target.checked) {
+              card.classList.add("bg-primary");
+            } else {
+              card.classList.remove("bg-primary");
+            }
+          });
+          card.appendChild(cardCheckbox);
+          // add click event listener to card
+          card.addEventListener("click", () => {
+            // @TODO: Persist progression for current seed inside local storage
+            cardCheckbox.checked = !cardCheckbox.checked;
+            cardCheckbox.dispatchEvent(new Event("change"));
+            const currentlyCollectedItems = getCurrentlyCollectedItemCards();
+            refreshChecks(currentlyCollectedItems);
+            window.gameInfo.saveItemProgress(
+              currentlyCollectedItems
+                .filter((a) => a.checked)
+                .map((item) => item.internalName)
+            );
+          });
+
+          cardCheckbox.checked = window.gameInfo
+            .loadProgress()
+            .collectedItemNames.includes(internalName);
           cardCheckbox.dispatchEvent(new Event("change"));
-          const currentlyCollectedItems = getCurrentlyCollectedItemCards();
-          refreshChecks(currentlyCollectedItems);
-          window.gameInfo.saveItemProgress(currentlyCollectedItems.filter(a=>a.checked).map(item => item.internalName));
-        });
+          return card;
+        };
 
-        cardCheckbox.checked = window.gameInfo.loadProgress().collectedItemNames.includes(internalName);
-        cardCheckbox.dispatchEvent(new Event("change"));
-        return card;
+        const progressionItemData =
+          await window.gameInfo.getListOfUsefulProgressionItems();
+        const itemListContainer = document.querySelector(
+          "#progressive-item-list"
+        );
+        itemListContainer.innerHTML = "";
+        progressionItemData.forEach((itemData) =>
+          document
+            .querySelector("#progressive-item-list")
+            .appendChild(createElement(itemData))
+        );
       };
-      
-      const progressionItemData = await window.gameInfo.getListOfUsefulProgressionItems();
-      progressionItemData.forEach((itemData) => document.querySelector("#progressive-item-list").appendChild(createElement(itemData)));
-
-      let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
 
       const refreshChecks = () => {
+        let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
         const collectedItems = getCurrentlyCollectedItemCards();
-        const collectedItemsNames = collectedItems.filter(item=>item.checked).map(item=>item.internalName);
+        const collectedItemsNames = collectedItems
+          .filter((item) => item.checked)
+          .map((item) => item.internalName);
 
-        const availableChecks = window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
+        const availableChecks =
+          window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
 
-        const alreadyVisitedChecks = window.gameInfo.loadProgress().visitedCheckNames;
+        const alreadyVisitedChecks =
+          window.gameInfo.loadProgress().visitedCheckNames;
 
-        const availableCheckCards = availableChecks.map(checkName => {
+        const availableCheckCards = availableChecks.map((checkName) => {
           // create halfmoon css card with left-aligned and vertically centered image and title on same line
           const card = document.createElement("div");
           card.classList.add("card", "d-flex", "align-items-center");
@@ -267,7 +325,7 @@
           cardText.classList.add("card-body");
           cardText.innerText = checkName;
           card.appendChild(cardText);
-          
+
           // add hidden checkbox that gets toggled when card is clicked
           const cardCheckbox = document.createElement("input");
           cardCheckbox.type = "checkbox";
@@ -289,13 +347,12 @@
             // @TODO: Persist progression for current seed inside local storage
             cardCheckbox.checked = !cardCheckbox.checked;
             cardCheckbox.dispatchEvent(new Event("change"));
-            if (cardCheckbox.checked)
-            {
+            if (cardCheckbox.checked) {
               collectedChecks.push(checkName);
-            }
-            else
-            {
-              collectedChecks = collectedChecks.filter(check=>check!==checkName);
+            } else {
+              collectedChecks = collectedChecks.filter(
+                (check) => check !== checkName
+              );
             }
 
             window.gameInfo.saveCheckProgress(collectedChecks);
@@ -304,35 +361,43 @@
           cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
           cardCheckbox.dispatchEvent(new Event("change"));
           return card;
-        })
+        });
         const checkList = document.querySelector("#check-list");
         checkList.innerHTML = "";
-        availableCheckCards.forEach((element) => document.querySelector("#check-list").appendChild(element));
-      }
+        availableCheckCards.forEach((element) =>
+          document.querySelector("#check-list").appendChild(element)
+        );
+      };
 
+      await refreshItems();
       refreshChecks();
     </script>
 
-    <div class="page-wrapper">
+    <div class="page-wrapper with-navbar">
+      <nav class="navbar">
+        <button class="d-none d-md-flex ml-auto btn btn-primary" onclick="window.gameInfo.resetProgress()">Reset</button>
+      </nav>
+
       <!-- Content wrapper -->
       <div class="content-wrapper">
         <div class="lists">
           <div class="checklist-wrapper">
-            <h2 class="content-title">
-              Progressive Items
-            </h2>
+            <h2 class="content-title">Progressive Items</h2>
             <div class="checklist" id="progressive-item-list"></div>
           </div>
           <div class="checklist-wrapper">
-            <h2 class="content-title">
-              Checks
-            </h2>
+            <h2 class="content-title">Checks</h2>
             <div class="checklist" id="check-list"></div>
           </div>
         </div>
         <style>
-          .lists
+          .card
           {
+            user-select: none;
+            cursor: pointer;
+          }
+
+          .lists {
             /* grid taking 50% of horizontal and 100% of all screen space and individually scrollable insides */
             display: grid;
             grid-template-columns: 50% 50%;
@@ -352,29 +417,26 @@
             height: 100%;
           }
 
-          .checklist .card
-          {
+          .checklist .card {
             order: 1;
           }
 
-          .checklist .card.bg-primary
-          {
+          .checklist .card.bg-primary {
             order: 2;
           }
 
-
           .checklist img {
-              width: 32px;
-              height: 32px;
+            width: 32px;
+            height: 32px;
           }
 
           .checklist p {
-              margin: 0;
+            margin: 0;
           }
 
           .checklist .card {
-            margin: .25em;
-            padding: .25em;
+            margin: 0.25em;
+            padding: 0.25em;
           }
         </style>
       </div>
