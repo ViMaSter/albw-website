@@ -92,7 +92,74 @@
 
       import init, { Cartridge } from "./albw_wasm.js";
       await init();
-      window.cartridge = new Cartridge(
+
+      class GameInfo
+      {
+        constructor(settings, seed)
+        {
+          this.seed = seed;
+          this.settings = settings;
+          this.cartridge = new Cartridge(settings, seed);
+          this.loadProgress();
+        }
+
+        saveItemProgress(collectedItemNames)
+        {
+          // store collectedItemNames in localStorage
+          localStorage.setItem('collectedItemNames.'+this.seed, JSON.stringify(collectedItemNames));
+        }
+
+        // store visitedChecks in local storage
+        saveCheckProgress(visitedCheckNames)
+        {
+          localStorage.setItem('visitedCheckNames.'+this.seed, JSON.stringify(visitedCheckNames));
+        }
+
+        loadProgress()
+        {
+          return {
+            collectedItemNames: JSON.parse(localStorage.getItem('collectedItemNames.'+this.seed)) || [],
+            visitedCheckNames: JSON.parse(localStorage.getItem('visitedCheckNames.'+this.seed)) || [],
+          }
+        }
+
+        async getListOfUsefulProgressionItems() {
+          const removeRupees = (itemName) => !itemName.includes("Rupee");
+          const displayNameToIconAndRequest = ([internalName, displayName]) =>
+            new Promise(async (resolve, reject) => {
+              const iconPath = displayNameToIconPath(displayName.replace(/ \(.*/, ""));
+              let requestSuccess = false;
+              try {
+                const response = await fetch(iconPath);
+                if (response.ok) {
+                  requestSuccess = true;
+                }
+              } catch (e) {
+                console.error(e);
+              }
+              resolve({internalName, displayName, iconPath, requestSuccess});
+            }
+          );
+
+          const getUniqueWithoutNumber = (value, index, self) => 
+            onlyUnique(
+              value.internalName.replace(/\d+/, ""), index, self.map(itemData=>itemData.internalName.replace(/\d+/, ""))
+            );
+
+          return (
+              await Promise.all(
+                this.cartridge
+                  .get_progression_item_names()
+                  .filter(removeRupees)
+                  .map(internalName => [internalName, internalNameToDisplayName(internalName)])
+                  .map(displayNameToIconAndRequest)
+              )
+            )
+            .filter(getUniqueWithoutNumber);
+        };
+      }
+
+      window.gameInfo = new GameInfo(
         {
           logic: {
             mode: "Normal",
@@ -119,47 +186,19 @@
         },
         2832764187
       );
-      console.log(window.cartridge);
-      console.log(cartridge.get_trash_item_names());
-      console.log(cartridge.get_progression_item_names());
-      console.log(cartridge.get_available_checks([]));
-      console.log(cartridge.get_available_checks(["Bow01"]));
 
-      const getListOfUsefulProgressionItems = async () => {
-        const removeRupees = (itemName) => !itemName.includes("Rupee");
-        const displayNameToIconAndRequest = ([internalName, displayName]) =>
-          new Promise(async (resolve, reject) => {
-            const iconPath = displayNameToIconPath(displayName.replace(/ \(.*/, ""));
-            let requestSuccess = false;
-            try {
-              const response = await fetch(iconPath);
-              if (response.ok) {
-                requestSuccess = true;
-              }
-            } catch (e) {
-              console.error(e);
-            }
-            resolve({internalName, displayName, iconPath, requestSuccess});
-          }
-        );
+      console.log(window.gameInfo.cartridge);
+      console.log(window.gameInfo.cartridge.get_trash_item_names());
+      console.log(window.gameInfo.cartridge.get_progression_item_names());
+      console.log(window.gameInfo.cartridge.get_available_checks([]));
+      console.log(window.gameInfo.cartridge.get_available_checks(["Bow01"]));
 
-        const getUniqueWithoutNumber = (value, index, self) => 
-          onlyUnique(
-            value.internalName.replace(/\d+/, ""), index, self.map(itemData=>itemData.internalName.replace(/\d+/, ""))
-          );
+      // @TODO: Explicitly add Ravios bracelet
 
-        return (
-            await Promise.all(
-              cartridge
-                .get_progression_item_names()
-                .filter(removeRupees)
-                .map(internalName => [internalName, internalNameToDisplayName(internalName)])
-                .map(displayNameToIconAndRequest)
-            )
-          )
-          .filter(getUniqueWithoutNumber); // @TODO: don't skip ravio bracelet upgrade
-      };
-
+      const getCurrentlyCollectedItemCards = () => Array.from(document.querySelectorAll("#progressive-item-list .card")).map(e=>{return {
+        checked: e.querySelector("input").checked,
+        internalName: e.dataset.internalName
+      }});
       const createElement = ({internalName, displayName, iconPath}) => {
         // create halfmoon css card with left-aligned and vertically centered image and title on same line
         const card = document.createElement("div");
@@ -194,24 +233,28 @@
           // @TODO: Persist progression for current seed inside local storage
           cardCheckbox.checked = !cardCheckbox.checked;
           cardCheckbox.dispatchEvent(new Event("change"));
-          refreshChecks();
+          const currentlyCollectedItems = getCurrentlyCollectedItemCards();
+          refreshChecks(currentlyCollectedItems);
+          window.gameInfo.saveItemProgress(currentlyCollectedItems.filter(a=>a.checked).map(item => item.internalName));
         });
+
+        cardCheckbox.checked = window.gameInfo.loadProgress().collectedItemNames.includes(internalName);
+        cardCheckbox.dispatchEvent(new Event("change"));
         return card;
       };
       
-      const progressionItemData = await getListOfUsefulProgressionItems();
+      const progressionItemData = await window.gameInfo.getListOfUsefulProgressionItems();
       progressionItemData.forEach((itemData) => document.querySelector("#progressive-item-list").appendChild(createElement(itemData)));
 
-      let collectedChecks = [];
+      let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
 
       const refreshChecks = () => {
-        const collectedItems = Array.from(document.querySelectorAll("#progressive-item-list .card")).map(e=>{return {
-          checked: e.querySelector("input").checked,
-          internalName: e.dataset.internalName
-        }});
+        const collectedItems = getCurrentlyCollectedItemCards();
         const collectedItemsNames = collectedItems.filter(item=>item.checked).map(item=>item.internalName);
 
-        const availableChecks = cartridge.get_available_checks(collectedItemsNames);
+        const availableChecks = window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
+
+        const alreadyVisitedChecks = window.gameInfo.loadProgress().visitedCheckNames;
 
         const availableCheckCards = availableChecks.map(checkName => {
           // create halfmoon css card with left-aligned and vertically centered image and title on same line
@@ -254,7 +297,12 @@
             {
               collectedChecks = collectedChecks.filter(check=>check!==checkName);
             }
+
+            window.gameInfo.saveCheckProgress(collectedChecks);
           });
+
+          cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
+          cardCheckbox.dispatchEvent(new Event("change"));
           return card;
         })
         const checkList = document.querySelector("#check-list");
