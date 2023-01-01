@@ -191,6 +191,7 @@
         card.appendChild(cardCheckbox);
         // add click event listener to card
         card.addEventListener("click", () => {
+          // @TODO: Persist progression for current seed inside local storage
           cardCheckbox.checked = !cardCheckbox.checked;
           cardCheckbox.dispatchEvent(new Event("change"));
           refreshChecks();
@@ -242,6 +243,7 @@
 
           // add click event listener to card
           card.addEventListener("click", () => {
+            // @TODO: Persist progression for current seed inside local storage
             cardCheckbox.checked = !cardCheckbox.checked;
             cardCheckbox.dispatchEvent(new Event("change"));
             if (cardCheckbox.checked)
