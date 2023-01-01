@@ -49,9 +49,9 @@
         if (!internalName.includes("Key") && !internalName.includes("Bottle")) {
           if (internalName.includes("02")) {
             return internalName
+              .replace(/([A-Z])/g, " $1")
               .replace("02", " (Upgrade)")
               .replace(/\d+/, "")
-              .replace(/([A-Z])/g, " $1")
               .trim();
           }
         }
@@ -165,7 +165,7 @@
 
           const getUniqueWithoutNumber = (value, index, self) =>
           {
-            if (value.displayName.includes("Ravio"))
+            if (value.displayName.includes("Ravio") || value.displayName.includes("Glove") )
             {
               return () => true;
             }
