@@ -44,6 +44,13 @@
         zoom: 10 // starting zoom
     });
     map.setRenderWorldCopies(false);
+
+    var marker = new maplibregl.Marker()
+        .setLngLat([0.25, 0.5])
+        .addTo(map);
+    var marker = new maplibregl.Marker()
+        .setLngLat([0.75, 0.5])
+        .addTo(map);
 </script>
 
 </body>
