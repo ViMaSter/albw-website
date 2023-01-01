@@ -157,7 +157,7 @@
                 .map(displayNameToIconAndRequest)
             )
           )
-          .filter(getUniqueWithoutNumber);
+          .filter(getUniqueWithoutNumber); // @TODO: don't skip ravio bracelet upgrade
       };
 
       const createElement = ({internalName, displayName, iconPath}) => {
