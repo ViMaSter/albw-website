@@ -201,42 +201,116 @@
       const progressionItemData = await getListOfUsefulProgressionItems();
       progressionItemData.forEach((itemData) => document.querySelector("#progressive-item-list").appendChild(createElement(itemData)));
 
+      let collectedChecks = [];
+
       const refreshChecks = () => {
-        const checks = Array.from(document.querySelectorAll("#progressive-item-list .card")).map(e=>{return {
+        const collectedItems = Array.from(document.querySelectorAll("#progressive-item-list .card")).map(e=>{return {
           checked: e.querySelector("input").checked,
           internalName: e.dataset.internalName
         }});
-        const activeCheckNames = checks.filter(check=>check.checked).map(check=>check.internalName);
-        console.log(cartridge.get_available_checks(activeCheckNames));
+        const collectedItemsNames = collectedItems.filter(item=>item.checked).map(item=>item.internalName);
+
+        const availableChecks = cartridge.get_available_checks(collectedItemsNames);
+
+        const availableCheckCards = availableChecks.map(checkName => {
+          // create halfmoon css card with left-aligned and vertically centered image and title on same line
+          const card = document.createElement("div");
+          card.classList.add("card", "d-flex", "align-items-center");
+          card.dataset.checkName = checkName;
+
+          // add text to card
+          const cardText = document.createElement("p");
+          cardText.classList.add("card-body");
+          cardText.innerText = checkName;
+          card.appendChild(cardText);
+          
+          // add hidden checkbox that gets toggled when card is clicked
+          const cardCheckbox = document.createElement("input");
+          cardCheckbox.type = "checkbox";
+          cardCheckbox.classList.add("d-none");
+          cardCheckbox.addEventListener("change", (e) => {
+            if (e.target.checked) {
+              card.classList.add("bg-primary");
+            } else {
+              card.classList.remove("bg-primary");
+            }
+          });
+          card.appendChild(cardCheckbox);
+
+          cardCheckbox.checked = collectedChecks.includes(checkName);
+          cardCheckbox.dispatchEvent(new Event("change"));
+
+          // add click event listener to card
+          card.addEventListener("click", () => {
+            cardCheckbox.checked = !cardCheckbox.checked;
+            cardCheckbox.dispatchEvent(new Event("change"));
+            if (cardCheckbox.checked)
+            {
+              collectedChecks.push(checkName);
+            }
+            else
+            {
+              collectedChecks = collectedChecks.filter(check=>check!==checkName);
+            }
+          });
+          return card;
+        })
+        const checkList = document.querySelector("#check-list");
+        checkList.innerHTML = "";
+        availableCheckCards.forEach((element) => document.querySelector("#check-list").appendChild(element));
       }
     </script>
 
     <div class="page-wrapper">
       <!-- Content wrapper -->
       <div class="content-wrapper">
-        <div id="progressive-item-list"></div>
+        <div class="lists">
+          <div class="checklist-wrapper">
+            <h2 class="content-title">
+              Progressive Items
+            </h2>
+            <div class="checklist" id="progressive-item-list"></div>
+          </div>
+          <div class="checklist-wrapper">
+            <h2 class="content-title">
+              Checks
+            </h2>
+            <div class="checklist" id="check-list"></div>
+          </div>
+        </div>
         <style>
-          #progressive-item-list {
+          .lists
+          {
+            /* grid taking 50% of horizontal and 100% of all screen space and individually scrollable insides */
+            display: grid;
+            grid-template-columns: 50% 50%;
+            height: 100%;
+            overflow: hidden;
+          }
+
+          .checklist-wrapper {
+            overflow-y: auto;
+            height: 100%;
+          }
+
+          .checklist {
             display: grid;
             grid-template-columns: 1fr;
             padding: 1rem;
+            overflow-y: auto;
+            height: 100%;
           }
 
-          #progressive-item-list > div {
-            display: block;
-            vertical-align: middle;
-          }
-
-          #progressive-item-list img {
+          .checklist img {
               width: 32px;
               height: 32px;
           }
 
-          #progressive-item-list p {
+          .checklist p {
               margin: 0;
           }
 
-          #progressive-item-list .card {
+          .checklist .card {
             margin: .25em;
             padding: .25em;
           }
