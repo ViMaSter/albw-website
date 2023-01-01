@@ -101,6 +101,7 @@
           this.settings = settings;
           this.cartridge = new Cartridge(settings, seed);
           this.loadProgress();
+          document.querySelector("#seed").innerText = seed;
         }
 
         resetProgress() {
@@ -375,6 +376,7 @@
 
     <div class="page-wrapper with-navbar">
       <nav class="navbar">
+        <p class="navbar-text text-monospace">Seed:&nbsp;<span id="seed"></span></p>
         <button class="d-none d-md-flex ml-auto btn btn-primary" onclick="window.gameInfo.resetProgress()">Reset</button>
       </nav>
 
@@ -382,11 +384,11 @@
       <div class="content-wrapper">
         <div class="lists">
           <div class="checklist-wrapper">
-            <h2 class="content-title">Progressive Items</h2>
+            <h2 class="page-title">Progressive Items</h2>
             <div class="checklist" id="progressive-item-list"></div>
           </div>
           <div class="checklist-wrapper">
-            <h2 class="content-title">Checks</h2>
+            <h2 class="page-title">Checks</h2>
             <div class="checklist" id="check-list"></div>
           </div>
         </div>
