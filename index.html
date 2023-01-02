@@ -194,6 +194,7 @@
         }
         generateCheckInfo = (layout) => {
           let mapping = [];
+          let locationMapping = [];
           const fillItemByLocation = (layout, prefix) => {
             if (typeof layout == "object") {
               Object.entries(layout).forEach((item) => {
@@ -203,15 +204,13 @@
               });
               return;
             }
-            mapping[prefix.join(".")] = layout;
+            const data = JSON.parse(JSON.stringify(layout));
+            mapping[prefix.at(-1)] = data;
+            const path = JSON.parse(JSON.stringify(prefix));
+            path.pop();
+            locationMapping[prefix.at(-1)] = path;
           };
           fillItemByLocation(layout, []);
-          const locationMapping = Object.fromEntries(
-            Object.entries(mapping).map(([key, value]) => {
-              const splitLocation = key.split(".");
-              return [splitLocation.pop(), splitLocation.join(".")];
-            })
-          );
           this.checkByItem = mapping;
           this.subregionByCheck = locationMapping;
         };
@@ -560,6 +559,8 @@
       console.log(window.gameInfo.cartridge.get_progression_item_names());
       console.log(window.gameInfo.cartridge.get_available_checks([]));
       console.log(window.gameInfo.cartridge.get_available_checks(["Bow01"]));
+      console.log(window.gameInfo.subregionByCheck);
+      console.log(window.gameInfo.checkByItem);
 
       // @TODO: Explicitly add Ravios bracelet
 
@@ -650,54 +651,87 @@
         const alreadyVisitedChecks =
           window.gameInfo.loadProgress().visitedCheckNames;
 
-        const availableCheckCards = availableChecks.map((checkName) => {
-          // create halfmoon css card with left-aligned and vertically centered image and title on same line
-          const card = document.createElement("div");
-          card.classList.add("card", "d-flex", "align-items-center");
-          card.dataset.checkName = checkName;
+        const onlyChecksWithSubregion = (checkName) =>
+          window.gameInfo.subregionByCheck[checkName] !== undefined;
 
-          // add text to card
-          const cardText = document.createElement("p");
-          cardText.classList.add("card-body");
-          cardText.innerText = checkName;
-          card.appendChild(cardText);
-
-          // add hidden checkbox that gets toggled when card is clicked
-          const cardCheckbox = document.createElement("input");
-          cardCheckbox.type = "checkbox";
-          cardCheckbox.classList.add("d-none");
-          cardCheckbox.addEventListener("change", (e) => {
-            if (e.target.checked) {
-              card.classList.add("bg-primary");
-            } else {
-              card.classList.remove("bg-primary");
+        const alphabeticallyBySubregionAndRegion = (checkNameA, checkNameB) => {
+          const subregionA = window.gameInfo.subregionByCheck[checkNameA];
+          const subregionB = window.gameInfo.subregionByCheck[checkNameB];
+          if (subregionA[0] === subregionB[0]) {
+            if (subregionA[1] === subregionB[1]) {
+              return subregionA[2] < subregionB[2] ? -1 : 1;
             }
-          });
-          card.appendChild(cardCheckbox);
+            return subregionA[1] < subregionB[1] ? -1 : 1;
+          }
+          return subregionA[0] < subregionB[0] ? -1 : 1;
+        };
 
-          cardCheckbox.checked = collectedChecks.includes(checkName);
-          cardCheckbox.dispatchEvent(new Event("change"));
+        const availableCheckCards = availableChecks
+          .filter(onlyChecksWithSubregion)
+          .sort(alphabeticallyBySubregionAndRegion)
+          .map((checkName) => {
+            // create halfmoon css card with left-aligned and vertically centered image and title on same line
+            const card = document.createElement("div");
+            card.classList.add("card", "d-flex", "align-items-center");
+            card.dataset.checkName = checkName;
 
-          // add click event listener to card
-          card.addEventListener("click", () => {
-            // @TODO: Persist progression for current seed inside local storage
-            cardCheckbox.checked = !cardCheckbox.checked;
+            const subregion = window.gameInfo.subregionByCheck[checkName];
+            subregion.push(checkName);
+
+            // create halfmoon breadcrumb element based on subregion array
+            const breadcrumb = document.createElement("nav");
+            breadcrumb.classList.add("breadcrumb");
+            breadcrumb.style.margin = "0";
+            breadcrumb.style.padding = "0";
+            breadcrumb.style.marginLeft = "auto";
+            breadcrumb.style.marginRight = "auto";
+            breadcrumb.style.marginBottom = "10px";
+            breadcrumb.style.marginTop = "10px";
+            subregion.forEach((subregionName) => {
+              const breadcrumbItem = document.createElement("p");
+              breadcrumbItem.classList.add("breadcrumb-item");
+              breadcrumbItem.innerText = subregionName;
+              breadcrumb.appendChild(breadcrumbItem);
+            });
+            card.appendChild(breadcrumb);
+
+            // add hidden checkbox that gets toggled when card is clicked
+            const cardCheckbox = document.createElement("input");
+            cardCheckbox.type = "checkbox";
+            cardCheckbox.classList.add("d-none");
+            cardCheckbox.addEventListener("change", (e) => {
+              if (e.target.checked) {
+                card.classList.add("bg-primary");
+              } else {
+                card.classList.remove("bg-primary");
+              }
+            });
+            card.appendChild(cardCheckbox);
+
+            cardCheckbox.checked = collectedChecks.includes(checkName);
             cardCheckbox.dispatchEvent(new Event("change"));
-            if (cardCheckbox.checked) {
-              collectedChecks.push(checkName);
-            } else {
-              collectedChecks = collectedChecks.filter(
-                (check) => check !== checkName
-              );
-            }
 
-            window.gameInfo.saveCheckProgress(collectedChecks);
-          });
+            // add click event listener to card
+            card.addEventListener("click", () => {
+              // @TODO: Persist progression for current seed inside local storage
+              cardCheckbox.checked = !cardCheckbox.checked;
+              cardCheckbox.dispatchEvent(new Event("change"));
+              if (cardCheckbox.checked) {
+                collectedChecks.push(checkName);
+              } else {
+                collectedChecks = collectedChecks.filter(
+                  (check) => check !== checkName
+                );
+              }
 
-          cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
-          cardCheckbox.dispatchEvent(new Event("change"));
-          return card;
-        });
+              window.gameInfo.saveCheckProgress(collectedChecks);
+            });
+
+            cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
+            cardCheckbox.dispatchEvent(new Event("change"));
+            return card;
+          }
+        );
         const checkList = document.querySelector("#check-list");
         checkList.innerHTML = "";
         availableCheckCards.forEach((element) =>
@@ -746,6 +780,11 @@
             grid-template-columns: 50% 50%;
             height: 100%;
             overflow: hidden;
+          }
+
+          .card nav
+          {
+            margin: 0 !important;
           }
 
           .checklist-wrapper {
