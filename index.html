@@ -757,6 +757,9 @@
                 window.map.setCurrentCheck(checkName);
                 return;
               }
+
+              window.map.marker[checkName].fire("click");
+              window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
               // @TODO: Persist progression for current seed inside local storage
               cardCheckbox.checked = !cardCheckbox.checked;
               cardCheckbox.dispatchEvent(new Event("change"));
@@ -884,8 +887,8 @@
               class Map {
                   constructor()
                   {
-                      this.marker = [];
-                      this.markerData = [];
+                      this.marker = {};
+                      this.markerData = {};
                       this.isInEditMode = false;
           
                       this.map = new maplibregl.Map({
@@ -982,25 +985,22 @@
                   setEditMode(active)
                   {
                       this.isInEditMode = active;
-                      this.marker.forEach(marker => marker.setDraggable(active))
+                      Object.values(this.marker).forEach(marker => marker.setDraggable(active))
                   }
           
                   updatePins()
                   {
                       // clear this.marker
-                      for (var i = 0; i < this.marker.length; i++)
-                      {
-                          this.marker[i].remove();
-                      }
-                      this.marker = Object.entries(this.markerData).map(([key, value]) =>
-                          new maplibregl.Marker()
+                      Object.values(this.marker).forEach(marker => marker.remove());
+                      this.marker = Object.fromEntries(Object.entries(this.markerData).map(([key, value]) =>
+                          [key, new maplibregl.Marker()
                               .setLngLat(value)
                               .setPopup(new maplibregl.Popup({ offset: 25 })
                                   .setHTML('<h3>' + key + '</h3>')
                               )
                               .setDraggable(this.isInEditMode)
                               .on('dragend', ((e) => this.setPosition(e, key)).bind(this))
-                              .addTo(this.map)
+                              .addTo(this.map)])
                       );
                       const rawData = this.getRawData();
                       document.querySelector("pre").innerText = JSON.stringify(rawData, null, 4);
