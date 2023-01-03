@@ -27,6 +27,16 @@
         background: #333;
         color: #f5f5f5;
       }
+      .content-wrapper
+      {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+      }
+
+      .content-wrapper > * {
+        flex: 1;
+      }
     </style>
     <script>
       window.onload = () => {
@@ -666,6 +676,31 @@
           return subregionA[0] < subregionB[0] ? -1 : 1;
         };
 
+        const checkNameToDisplayName = (checkName) => {
+          return checkName.replace(/^\[.*\] /, "").trim();
+        };
+
+        const calculateLongestSubregionNameForAllAvailableChecks = () => {
+          let levelAndLength = {};
+          availableChecks.forEach((checkName) => {
+            const subregion = window.gameInfo.subregionByCheck[checkName];
+            if (!subregion)
+            {
+              return;
+            }
+            for (let index = 0; index < subregion.length; index++) {
+              const element = subregion[index];
+              levelAndLength[index] = Math.max(
+                levelAndLength[index] || 0,
+                element.length
+              );
+            }
+          });
+          return levelAndLength;
+        };
+
+        const longestSubregionNameForAllAvailableChecks = calculateLongestSubregionNameForAllAvailableChecks();
+
         const availableCheckCards = availableChecks
           .filter(onlyChecksWithSubregion)
           .sort(alphabeticallyBySubregionAndRegion)
@@ -676,21 +711,25 @@
             card.dataset.checkName = checkName;
 
             const subregion = window.gameInfo.subregionByCheck[checkName];
-            subregion.push(checkName);
+            subregion.push(checkNameToDisplayName(checkName));
 
             // create halfmoon breadcrumb element based on subregion array
             const breadcrumb = document.createElement("nav");
-            breadcrumb.classList.add("breadcrumb");
+            breadcrumb.classList.add("breadcrumb", "text-monospace");
             breadcrumb.style.margin = "0";
             breadcrumb.style.padding = "0";
             breadcrumb.style.marginLeft = "auto";
             breadcrumb.style.marginRight = "auto";
             breadcrumb.style.marginBottom = "10px";
             breadcrumb.style.marginTop = "10px";
-            subregion.forEach((subregionName) => {
+            subregion.forEach((subregionName, index) => {
               const breadcrumbItem = document.createElement("p");
               breadcrumbItem.classList.add("breadcrumb-item");
-              breadcrumbItem.innerText = subregionName;
+              let spacesToAdd = longestSubregionNameForAllAvailableChecks[index] - subregionName.length;
+              if (spacesToAdd > 0) {
+                subregionName += "&nbsp;".repeat(spacesToAdd);
+              }
+              breadcrumbItem.innerHTML = subregionName;
               breadcrumb.appendChild(breadcrumbItem);
             });
             card.appendChild(breadcrumb);
@@ -713,6 +752,11 @@
 
             // add click event listener to card
             card.addEventListener("click", () => {
+              if (window.map.isInEditMode)
+              {
+                window.map.setCurrentCheck(checkName);
+                return;
+              }
               // @TODO: Persist progression for current seed inside local storage
               cardCheckbox.checked = !cardCheckbox.checked;
               cardCheckbox.dispatchEvent(new Event("change"));
@@ -748,6 +792,11 @@
         <p class="navbar-text text-monospace">
           Seed:&nbsp;<span id="seed"></span>
         </p>
+
+        <div class="custom-switch d-none d-md-flex ml-auto">
+          <input type="checkbox" id="edit-mode" value="" onchange="window.map.setEditMode(this.checked)">
+          <label for="edit-mode">Edit mode</label>
+        </div>
         <button
           class="d-none d-md-flex ml-auto btn btn-primary"
           onclick="window.gameInfo.resetProgress()"
@@ -767,60 +816,201 @@
             <h2 class="page-title">Checks</h2>
             <div class="checklist" id="check-list"></div>
           </div>
+          <style>
+            .card {
+              user-select: none;
+              cursor: pointer;
+            }
+  
+            .lists {
+              /* grid taking 50% of horizontal and 100% of all screen space and individually scrollable insides */
+              display: grid;
+              grid-template-columns: 50% 50%;
+              height: 100%;
+              overflow: hidden;
+            }
+  
+            .card nav
+            {
+              margin: 0 !important;
+            }
+  
+            .checklist-wrapper {
+              overflow-y: auto;
+              height: 100%;
+            }
+  
+            /* vertical list of items as flexbox */
+            .checklist {
+              display: flex;
+              flex-direction: column;
+              height: 100%;
+            }
+  
+            .checklist .card {
+              order: 1;
+            }
+  
+            .checklist .card.bg-primary {
+              order: 2;
+            }
+  
+            .checklist img {
+              width: 32px;
+              height: 32px;
+            }
+  
+            .checklist p {
+              margin: 0;
+            }
+  
+            .checklist .card {
+              margin: 0.25em;
+              padding: 0.25em;
+            }
+          </style>
         </div>
-        <style>
-          .card {
-            user-select: none;
-            cursor: pointer;
-          }
+        <div class="map">
+            <div id="map"></div>
+            <pre id="dump"></pre>
+          <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+          <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+          <style>
+            .mapContainer { position: relative; margin: 0; padding: 0; background-color: black; width:100vw; height:100vh; display: block;}
+            #map { position: relative; top: 0; height: 50%; }
+            #dump { position: relative; top: 0; left: 0; height: 50%; color: white; }
+          </style>
+          <script>
+              class Map {
+                  constructor()
+                  {
+                      this.marker = [];
+                      this.markerData = [];
+                      this.isInEditMode = false;
+          
+                      this.map = new maplibregl.Map({
+                          container: 'map', // container id
+                          style: {
+                              'version': 8,
+                              'sources': {
+                                  "image": {
+                                      "type": "image",
+                                      "url": "map/map.png",
+                                      "coordinates": [
+                                          [0, 1],
+                                          [1, 1],
+                                          [1, 0],
+                                          [0, 0]
+                                      ]
+                                  }
+                              },
+                              'layers': [
+                                  {
+                                      'id': 'simple-tiles',
+                                      'type': 'raster',
+                                      'source': 'image',
+                                      'minzoom': 0,
+                                      'maxzoom': 0,
+                                  }
+                              ]
+                          },
+                          center: [0.25, 0.5], // starting position
+                          zoom: 10 // starting zoom
+                      });
+                      this.map.setRenderWorldCopies(false);
+                      
+                      this.map.on('click', this.setPosition.bind(this));
+                      this.fetchDataFromLocalStorage();
+                      this.updatePins();
+                  }
+          
+                  setCurrentCheck(checkName)
+                  {
+                      this.currentCheckName = checkName;
+                  }
+          
+                  setPosition(e, key)
+                  {
+                      let lngLat = undefined;
+                      if (e.type == 'click')
+                      {
+                          lngLat = e.lngLat;
+                      }
+                      if (e.type == 'dragend')
+                      {
+                          lngLat = e.target.getLngLat();
+                          this.currentCheckName = key;
+                      }
+          
+                      if (!lngLat)
+                      {
+                          throw new Error(`Couldn't determine lngLat for event of type '${e.type}'`);
+                      }
+          
+                      if (!this.currentCheckName)
+                      {
+                          console.warn("No check name set");
+                          return;
+                      }
+                      this.markerData[this.currentCheckName] = lngLat;
+                      console.log(`Set ${this.currentCheckName} to ${lngLat}`);
+                      
+                      this.updatePins();
+                  }
+          
+                  getRawData() {
+                      // pretty print
+                      return Object.fromEntries(
+                        Object.entries(this.markerData)
+                            .map(([key, value]) => [key, [value.lng, value.lat]])
+                      );
+                  }
 
-          .lists {
-            /* grid taking 50% of horizontal and 100% of all screen space and individually scrollable insides */
-            display: grid;
-            grid-template-columns: 50% 50%;
-            height: 100%;
-            overflow: hidden;
-          }
+                  fetchDataFromLocalStorage()
+                  {
+                      const rawData = localStorage.getItem("mapData");
+                      if (rawData)
+                      {
+                          this.markerData = Object.fromEntries(
+                              Object.entries(JSON.parse(rawData))
+                                  .map(([key, value]) => [key, new maplibregl.LngLat(value[0], value[1])])
+                          );
+                      }
+                      this.updatePins();
+                  }
 
-          .card nav
-          {
-            margin: 0 !important;
-          }
-
-          .checklist-wrapper {
-            overflow-y: auto;
-            height: 100%;
-          }
-
-          /* vertical list of items as flexbox */
-          .checklist {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-          }
-
-          .checklist .card {
-            order: 1;
-          }
-
-          .checklist .card.bg-primary {
-            order: 2;
-          }
-
-          .checklist img {
-            width: 32px;
-            height: 32px;
-          }
-
-          .checklist p {
-            margin: 0;
-          }
-
-          .checklist .card {
-            margin: 0.25em;
-            padding: 0.25em;
-          }
-        </style>
+                  setEditMode(active)
+                  {
+                      this.isInEditMode = active;
+                      this.marker.forEach(marker => marker.setDraggable(active))
+                  }
+          
+                  updatePins()
+                  {
+                      // clear this.marker
+                      for (var i = 0; i < this.marker.length; i++)
+                      {
+                          this.marker[i].remove();
+                      }
+                      this.marker = Object.entries(this.markerData).map(([key, value]) =>
+                          new maplibregl.Marker()
+                              .setLngLat(value)
+                              .setPopup(new maplibregl.Popup({ offset: 25 })
+                                  .setHTML('<h3>' + key + '</h3>')
+                              )
+                              .setDraggable(this.isInEditMode)
+                              .on('dragend', ((e) => this.setPosition(e, key)).bind(this))
+                              .addTo(this.map)
+                      );
+                      const rawData = this.getRawData();
+                      document.querySelector("pre").innerText = JSON.stringify(rawData, null, 4);
+                      localStorage.setItem("mapData", JSON.stringify(rawData));
+                  }
+              }
+          
+              window.map = new Map();
+          </script>
+        </div>
       </div>
     </div>
   </body>

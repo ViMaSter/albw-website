@@ -4,53 +4,128 @@
 <meta charset="utf-8" />
 <title>Add a raster tile source</title>
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+</head>
+<body>
+<div class="mapContainer">
+    <div id="map"></div>
+    <pre id="dump"></pre>
+</div>
 <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
-	body { margin: 0; padding: 0; }
-	#map { position: absolute; top: 0; bottom: 0; width: 50%; }
+	.mapContainer { position: relative; margin: 0; padding: 0; background-color: black; width:100vw; height:100vh; display: block;}
+	#map { position: relative; top: 0; height: 50%; }
+	#dump { position: relative; top: 0; left: 0; height: 50%; color: white; }
 </style>
-</head>
-<body>
-<div id="map"></div>
 <script>
-    var map = new maplibregl.Map({
-        container: 'map', // container id
-        style: {
-            'version': 8,
-            'sources': {
-                "image": {
-                    "type": "image",
-                    "url": "map/map.png",
-                    "coordinates": [
-                        [0, 1],
-                        [1, 1],
-                        [1, 0],
-                        [0, 0]
-                    ]
-                }
-            },
-            'layers': [
-                {
-                    'id': 'simple-tiles',
-                    'type': 'raster',
-                    'source': 'image',
-                    'minzoom': 0,
-                    'maxzoom': 0,
-                }
-            ]
-        },
-        center: [0.25, 0.5], // starting position
-        zoom: 10 // starting zoom
-    });
-    map.setRenderWorldCopies(false);
+    class Map {
+        constructor()
+        {
+            this.marker = [];
+            this.markerData = [];
 
-    var marker = new maplibregl.Marker()
-        .setLngLat([0.25, 0.5])
-        .addTo(map);
-    var marker = new maplibregl.Marker()
-        .setLngLat([0.75, 0.5])
-        .addTo(map);
+            this.map = new maplibregl.Map({
+                container: 'map', // container id
+                style: {
+                    'version': 8,
+                    'sources': {
+                        "image": {
+                            "type": "image",
+                            "url": "map/map.png",
+                            "coordinates": [
+                                [0, 1],
+                                [1, 1],
+                                [1, 0],
+                                [0, 0]
+                            ]
+                        }
+                    },
+                    'layers': [
+                        {
+                            'id': 'simple-tiles',
+                            'type': 'raster',
+                            'source': 'image',
+                            'minzoom': 0,
+                            'maxzoom': 0,
+                        }
+                    ]
+                },
+                center: [0.25, 0.5], // starting position
+                zoom: 10 // starting zoom
+            });
+            this.map.setRenderWorldCopies(false);
+            
+            this.map.on('click', this.setPosition.bind(this));
+        }
+
+        setCurrentCheck(checkName)
+        {
+            this.currentCheckName = checkName;
+        }
+
+        setPosition(e)
+        {
+            let lngLat = undefined;
+            if (e.type == 'click')
+            {
+                lngLat = e.lngLat;
+            }
+            if (e.type == 'dragend')
+            {
+                lngLat = e.target.getLngLat();
+            }
+
+            if (!lngLat)
+            {
+                throw new Error(`Couldn't determine lngLat for event of type '${e.type}'`);
+            }
+
+            if (!this.currentCheckName)
+            {
+                console.warn("No check name set");
+                return;
+            }
+
+            this.markerData[this.currentCheckName] = lngLat;
+            console.log(`Set ${this.currentCheckName} to ${lngLat}`);
+            
+            this.updatePins();
+        }
+
+        serialize() {
+            // pretty print
+            return JSON.stringify(
+                Object.fromEntries(
+                    Object.entries(map.markerData)
+                        .map(([key, value]) => [key, [value.lng, value.lat]])
+                ),
+                null,
+                4
+            );
+        }
+
+        updatePins()
+        {
+            // clear this.marker
+            for (var i = 0; i < this.marker.length; i++)
+            {
+                this.marker[i].remove();
+            }
+            this.marker = Object.entries(this.markerData).map(([key, value]) =>
+                new maplibregl.Marker()
+                    .setLngLat(value)
+                    .setPopup(new maplibregl.Popup({ offset: 25 })
+                        .setHTML('<h3>' + key + '</h3>')
+                    )
+                    .setDraggable(true)
+                    .on('dragend', this.setPosition.bind(this))
+                    .addTo(this.map)
+            );
+            document.querySelector("pre").innerText = this.serialize();
+        }
+    }
+
+    map = new Map();
 </script>
 
 </body>
