@@ -710,8 +710,28 @@
             card.classList.add("card", "d-flex", "align-items-center");
             card.dataset.checkName = checkName;
 
-            const subregion = window.gameInfo.subregionByCheck[checkName];
-            subregion.push(checkNameToDisplayName(checkName));
+            // add hidden checkbox that gets toggled when card is clicked
+            const cardCheckbox = document.createElement("input");
+            cardCheckbox.type = "checkbox";
+            cardCheckbox.addEventListener("change", (e) => {
+              if (e.target.checked) {
+                card.classList.remove("bg-primary");
+              } else {
+                card.classList.add("bg-primary");
+              }
+
+              if (cardCheckbox.checked) {
+                collectedChecks.push(checkName);
+              } else {
+                collectedChecks = collectedChecks.filter(
+                  (check) => check !== checkName
+                );
+              }
+
+              cardCheckbox.checked = !cardCheckbox.checked;
+              cardCheckbox.dispatchEvent(new Event("change"));
+            });
+            card.appendChild(cardCheckbox);
 
             // create halfmoon breadcrumb element based on subregion array
             const breadcrumb = document.createElement("nav");
@@ -722,7 +742,7 @@
             breadcrumb.style.marginRight = "auto";
             breadcrumb.style.marginBottom = "10px";
             breadcrumb.style.marginTop = "10px";
-            subregion.forEach((subregionName, index) => {
+            [...window.gameInfo.subregionByCheck[checkName], checkNameToDisplayName(checkName)].forEach((subregionName, index) => {
               const breadcrumbItem = document.createElement("p");
               breadcrumbItem.classList.add("breadcrumb-item");
               let spacesToAdd = longestSubregionNameForAllAvailableChecks[index] - subregionName.length;
@@ -733,19 +753,6 @@
               breadcrumb.appendChild(breadcrumbItem);
             });
             card.appendChild(breadcrumb);
-
-            // add hidden checkbox that gets toggled when card is clicked
-            const cardCheckbox = document.createElement("input");
-            cardCheckbox.type = "checkbox";
-            cardCheckbox.classList.add("d-none");
-            cardCheckbox.addEventListener("change", (e) => {
-              if (e.target.checked) {
-                card.classList.add("bg-primary");
-              } else {
-                card.classList.remove("bg-primary");
-              }
-            });
-            card.appendChild(cardCheckbox);
 
             cardCheckbox.checked = collectedChecks.includes(checkName);
             cardCheckbox.dispatchEvent(new Event("change"));
@@ -758,20 +765,11 @@
                 return;
               }
 
-              window.map.marker[checkName].fire("click");
-              window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
-              // @TODO: Persist progression for current seed inside local storage
-              cardCheckbox.checked = !cardCheckbox.checked;
-              cardCheckbox.dispatchEvent(new Event("change"));
-              if (cardCheckbox.checked) {
-                collectedChecks.push(checkName);
-              } else {
-                collectedChecks = collectedChecks.filter(
-                  (check) => check !== checkName
-                );
+              if (window.map.marker[checkName])
+              {
+                window.map.marker[checkName].fire("click");
+                window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
               }
-
-              window.gameInfo.saveCheckProgress(collectedChecks);
             });
 
             cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
@@ -832,10 +830,21 @@
               height: 100%;
               overflow: hidden;
             }
+
+            .card 
+            {
+              display: flex;
+            }
+
+            .card input
+            {
+              width: 50px;
+            }
   
             .card nav
             {
               margin: 0 !important;
+              text-align: left;
             }
   
             .checklist-wrapper {
@@ -884,7 +893,7 @@
             #dump { position: relative; top: 0; left: 0; height: 50%; color: white; }
           </style>
           <script>
-              class Map {
+              class InteractiveMap {
                   constructor()
                   {
                       this.marker = {};
@@ -1008,7 +1017,7 @@
                   }
               }
           
-              window.map = new Map();
+              window.map = new InteractiveMap();
           </script>
         </div>
       </div>

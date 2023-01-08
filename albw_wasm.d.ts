@@ -22,6 +22,10 @@ export class Cartridge {
 * @returns {any}
 */
   get_available_checks(obtained_items_js: any): any;
+/**
+* @returns {any}
+*/
+  get_plando(): any;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -33,6 +37,7 @@ export interface InitOutput {
   readonly cartridge_get_trash_item_names: (a: number) => number;
   readonly cartridge_get_progression_item_names: (a: number) => number;
   readonly cartridge_get_available_checks: (a: number, b: number) => number;
+  readonly cartridge_get_plando: (a: number) => number;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_free: (a: number, b: number) => void;
