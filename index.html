@@ -113,6 +113,14 @@
           this.generateCheckInfo(layout);
           this.loadProgress();
           document.querySelector("#seed").innerText = seed;
+
+          Object.keys(this.subregionByCheck).forEach(checkName => {
+            const checkNameToDisplayName = (name) => {
+              return name.replace(/^\[.*\] /, "").trim();
+            };
+
+            this.subregionByCheck[checkName].push(checkNameToDisplayName(checkName));
+          });
         }
 
         resetProgress() {
@@ -676,10 +684,6 @@
           return subregionA[0] < subregionB[0] ? -1 : 1;
         };
 
-        const checkNameToDisplayName = (checkName) => {
-          return checkName.replace(/^\[.*\] /, "").trim();
-        };
-
         const calculateLongestSubregionNameForAllAvailableChecks = () => {
           let levelAndLength = {};
           availableChecks.forEach((checkName) => {
@@ -742,7 +746,8 @@
             breadcrumb.style.marginRight = "auto";
             breadcrumb.style.marginBottom = "10px";
             breadcrumb.style.marginTop = "10px";
-            [...window.gameInfo.subregionByCheck[checkName], checkNameToDisplayName(checkName)].forEach((subregionName, index) => {
+
+            window.gameInfo.subregionByCheck[checkName].forEach((subregionName, index) => {
               const breadcrumbItem = document.createElement("p");
               breadcrumbItem.classList.add("breadcrumb-item");
               let spacesToAdd = longestSubregionNameForAllAvailableChecks[index] - subregionName.length;
@@ -769,6 +774,16 @@
               {
                 window.map.marker[checkName].fire("click");
                 window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
+              }
+              // @TODO: Persist progression for current seed inside local storage
+              cardCheckbox.checked = !cardCheckbox.checked;
+              cardCheckbox.dispatchEvent(new Event("change"));
+              if (cardCheckbox.checked) {
+                collectedChecks.push(checkName);
+              } else {
+                collectedChecks = collectedChecks.filter(
+                  (check) => check !== checkName
+                );
               }
             });
 
@@ -818,6 +833,10 @@
             <div class="checklist" id="check-list"></div>
           </div>
           <style>
+            .map {
+              flex-grow: 0.4;
+            }
+
             .card {
               user-select: none;
               cursor: pointer;
