@@ -18,6 +18,15 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/halfmoon/css/halfmoon.min.css"
     />
+    <!-- Import font-awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
     <script src="https://cdn.jsdelivr.net/npm/halfmoon/js/halfmoon.min.js"></script>
     <title>ALBW Randomizer</title>
     <style>
@@ -229,7 +238,7 @@
             locationMapping[prefix.at(-1)] = path;
           };
           fillItemByLocation(layout, []);
-          this.checkByItem = mapping;
+          this.itemByCheck = mapping;
           this.subregionByCheck = locationMapping;
         };
       }
@@ -578,7 +587,7 @@
       console.log(window.gameInfo.cartridge.get_available_checks([]));
       console.log(window.gameInfo.cartridge.get_available_checks(["Bow01"]));
       console.log(window.gameInfo.subregionByCheck);
-      console.log(window.gameInfo.checkByItem);
+      console.log(window.gameInfo.itemByCheck);
 
       // @TODO: Explicitly add Ravios bracelet
 
@@ -622,6 +631,7 @@
             }
           });
           card.appendChild(cardCheckbox);
+
           // add click event listener to card
           card.addEventListener("click", () => {
             // @TODO: Persist progression for current seed inside local storage
@@ -740,6 +750,7 @@
             // create halfmoon breadcrumb element based on subregion array
             const breadcrumb = document.createElement("nav");
             breadcrumb.classList.add("breadcrumb", "text-monospace");
+            breadcrumb.style.width = "50%";
             breadcrumb.style.margin = "0";
             breadcrumb.style.padding = "0";
             breadcrumb.style.marginLeft = "auto";
@@ -761,6 +772,33 @@
 
             cardCheckbox.checked = collectedChecks.includes(checkName);
             cardCheckbox.dispatchEvent(new Event("change"));
+
+            // add halfmoon button
+            const cardEye = document.createElement("i");
+            cardEye.classList.add("fas", "fa-eye-slash");
+
+            const cardButton = document.createElement("button");
+            cardButton.classList.add("btn", "btn-primary", "btn-sm");
+            cardButton.addEventListener("click", () => {
+              card.classList.toggle("show-spoiler");
+              cardEye.classList.toggle("fa-eye");
+              cardEye.classList.toggle("fa-eye-slash");
+            });
+            cardButton.appendChild(cardEye);
+            card.appendChild(cardButton);
+
+          
+
+            // add item found at that check
+            const breakItem = document.createElement("div");
+            breakItem.classList.add("flex-break");
+            card.appendChild(breakItem);
+
+            // add item found at that check
+            const cardItem = document.createElement("p");
+            cardItem.classList.add("full-width", "spoiler-entry");
+            cardItem.innerText = window.gameInfo.itemByCheck[checkName];
+            card.appendChild(cardItem);
 
             // add click event listener to card
             card.addEventListener("click", () => {
@@ -853,6 +891,14 @@
             .card 
             {
               display: flex;
+              flex-wrap: wrap;
+              flex-direction: row;
+              align-content: center;
+            }
+
+            #check-list .card
+            {
+              justify-content: space-between;
             }
 
             .card input
@@ -898,6 +944,32 @@
             .checklist .card {
               margin: 0.25em;
               padding: 0.25em;
+            }
+
+            .flex-break {
+              flex-basis: 100%;
+              width: 0;
+            }
+
+            .spoiler-entry {
+              display: none;
+              border-top: 2px solid rgba(255, 255, 255, 0.25);
+              margin-top: 1em !important;
+              padding-top: 0.5em;
+            }
+
+            .show-spoiler .spoiler-entry {
+              display: block;
+            }
+
+            .full-width {
+              width: 100%;
+              text-align: center;
+            }
+
+            i {
+              display: block;
+              text-align: center;
             }
           </style>
         </div>
