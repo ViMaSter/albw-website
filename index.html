@@ -751,6 +751,7 @@
             const breadcrumb = document.createElement("nav");
             breadcrumb.classList.add("breadcrumb", "text-monospace");
             breadcrumb.style.width = "50%";
+            breadcrumb.style.flexGrow = "1";
             breadcrumb.style.margin = "0";
             breadcrumb.style.padding = "0";
             breadcrumb.style.marginLeft = "auto";
@@ -787,8 +788,6 @@
             cardButton.appendChild(cardEye);
             card.appendChild(cardButton);
 
-          
-
             // add item found at that check
             const breakItem = document.createElement("div");
             breakItem.classList.add("flex-break");
@@ -797,7 +796,7 @@
             // add item found at that check
             const cardItem = document.createElement("p");
             cardItem.classList.add("full-width", "spoiler-entry");
-            cardItem.innerText = window.gameInfo.itemByCheck[checkName];
+            cardItem.innerText = internalNameToDisplayName(window.gameInfo.itemByCheck[checkName]);
             card.appendChild(cardItem);
 
             // add click event listener to card
@@ -863,7 +862,7 @@
       <div class="content-wrapper">
         <div class="lists">
           <div class="checklist-wrapper">
-            <h2 class="page-title">Progression Items</h2>
+            <h2 class="page-title">Items</h2>
             <div class="checklist" id="progressive-item-list"></div>
           </div>
           <div class="checklist-wrapper">
@@ -883,7 +882,7 @@
             .lists {
               /* grid taking 50% of horizontal and 100% of all screen space and individually scrollable insides */
               display: grid;
-              grid-template-columns: 50% 50%;
+              grid-template-columns: 25% 75%;
               height: 100%;
               overflow: hidden;
             }
@@ -911,9 +910,16 @@
               margin: 0 !important;
               text-align: left;
             }
+
+            .content-wrapper
+            {
+              overflow: hidden;
+            }
   
             .checklist-wrapper {
-              overflow-y: auto;
+              display: flex;
+              flex-direction: column;
+              overflow-y: hidden;
               height: 100%;
             }
   
@@ -921,7 +927,8 @@
             .checklist {
               display: flex;
               flex-direction: column;
-              height: 100%;
+              flex-grow: 1;
+              overflow: scroll;
             }
   
             .checklist .card {
@@ -954,8 +961,12 @@
             .spoiler-entry {
               display: none;
               border-top: 2px solid rgba(255, 255, 255, 0.25);
-              margin-top: 1em !important;
-              padding-top: 0.5em;
+              margin-top: 0.6em !important;
+              padding-top: 0.35em;
+            }
+
+            .bg-primary .spoiler-entry {
+              display: block;
             }
 
             .show-spoiler .spoiler-entry {
