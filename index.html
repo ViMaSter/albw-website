@@ -69,7 +69,6 @@
           if (internalName.includes("02")) {
             return internalName
               .replace(/([A-Z])/g, " $1")
-              .replace("02", " (Upgrade)")
               .replace(/\d+/, "")
               .trim();
           }
@@ -200,9 +199,9 @@
               return () => true;
             }
             return onlyUnique(
-              value.internalName.replace(/\d+/, ""),
+              value.internalName,
               index,
-              self.map((itemData) => itemData.internalName.replace(/\d+/, ""))
+              self.map((itemData) => itemData.internalName)
             );
           };
 
