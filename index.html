@@ -60,66 +60,112 @@
   </head>
   <body>
     <script type="module">
-      const onlyUnique = (value, index, self) => {
-        return self.indexOf(value) === index;
-      };
-
-      const internalNameToDisplayName = (internalName) => {
-        if (!internalName.includes("Key") && !internalName.includes("Bottle")) {
-          if (internalName.includes("02")) {
-            return internalName
-              .replace(/([A-Z])/g, " $1")
-              .replace(/\d+/, "")
-              .trim();
-          }
-        }
-
-        return internalName
-          .replace(/\d+/, "")
-          .replace(/([A-Z])/g, " $1")
-          .trim();
-      };
-
-      const displayNameToIconPath = (itemName) => {
-        const progressiveItems = ["Glove", "Sword", "Bracelet", "Mail"];
-        const conversion = (itemName) => {
-          if (itemName.includes("Ore")) {
-            return `Master Ore`;
-          }
-          if (itemName.includes("Compass")) {
-            return `Compass`;
-          }
-          const progressiveItem = progressiveItems.find((pItem) =>
-            itemName.includes(pItem)
-          );
-          if (progressiveItem) {
-            return `Progressive ${progressiveItem}`;
-          }
-          if (
-            itemName.includes("Key") &&
-            (itemName.includes("Big") || itemName.includes("Sanctuary"))
-          ) {
-            return `Big Key`;
-          }
-          if (itemName.includes("Key") && itemName.includes("Small")) {
-            return `Small Key`;
-          }
-          return itemName;
-        };
-
-        return `./items/${conversion(itemName)}.png`;
-      };
-
       import init, { Cartridge } from "./albw_wasm.js";
       await init();
 
+      class RupeeHelper
+        {
+          static #group = {
+              Gold: 300,
+              Silver: 100,
+              Purple: 50,
+          };
+
+          static generateTotalBasedOnIndices(collectedRupees)
+          {
+            const countPerConversion = Object.fromEntries(Object.entries(RupeeHelper.#group).map(([key, value]) => [key, collectedRupees.filter(name => name.includes(key)).length]));
+            return Object.entries(countPerConversion).reduce((acc, [key, value]) => acc + value * RupeeHelper.#group[key], 0);
+          }
+          
+          static generateIndicesBasedOnTotal (currentCount) {
+            const calculateRupeesUsedBasedOnTotal = (currentCount) => {
+                const countAvailableRupees = () => {
+                    const allRupees = window.gameInfo.cartridge.get_progression_item_names().filter(name => name.includes("Rupee"));
+                    const countPerConversion = Object.fromEntries(Object.entries(RupeeHelper.#group).map(([key, value]) => [key, allRupees.filter(name => name.includes(key)).length]));
+                    return countPerConversion;
+                };
+
+                const availableRupeesByGroup = countAvailableRupees();
+
+                let usedByGroup = {};
+                const result = Object.entries(RupeeHelper.#group).sort((a, b) => b[1] - a[1]).reduce((acc, [key, value]) => {
+                    const available = availableRupeesByGroup[key];
+                    const needed = Math.min(Math.floor((currentCount - acc) / value), available);
+                    usedByGroup[key] = needed;
+                    return acc + needed * value;
+                }, 0);
+                return usedByGroup;
+            };
+
+            const currentGroup = calculateRupeesUsedBasedOnTotal(currentCount);
+            // rupees are index using "Rupee" + "Gold" | "Silver" | "Purple" + "Rupee" + "XX" where X is the number of the rupee prefixed with 0 if needed
+            const usedIndices = Object.entries(currentGroup).reduce((acc, [key, value]) => {
+                return acc.concat(Array.from(Array(value).keys()).map(i => `Rupee${key}${(i+1).toString().padStart(2, "0")}`));
+            }, []);
+            return usedIndices;
+          };
+        }
+
       class GameInfo {
+        static #internalNameToDisplayName(internalName) {
+          if (!internalName.includes("Key") && !internalName.includes("Bottle")) {
+            if (internalName.includes("02")) {
+              return internalName
+                .replace(/([A-Z])/g, " $1")
+                .replace(/\d+/, "")
+                .trim();
+            }
+          }
+
+          return internalName
+            .replace(/\d+/, "")
+            .replace(/([A-Z])/g, " $1")
+            .trim();
+        };
+
+        
+        static #displayNameToIconPath(itemName) {
+          const progressiveItems = ["Glove", "Sword", "Bracelet", "Mail"];
+          const conversion = (itemName) => {
+            if (itemName.includes("Ore")) {
+              return `Master Ore`;
+            }
+            if (itemName.includes("Compass")) {
+              return `Compass`;
+            }
+            const progressiveItem = progressiveItems.find((pItem) =>
+              itemName.includes(pItem)
+            );
+            if (progressiveItem) {
+              return `Progressive ${progressiveItem}`;
+            }
+            if (
+              itemName.includes("Key") &&
+              (itemName.includes("Big") || itemName.includes("Sanctuary"))
+            ) {
+              return `Big Key`;
+            }
+            if (itemName.includes("Key") && itemName.includes("Small")) {
+              return `Small Key`;
+            }
+            return itemName;
+          };
+
+          return `./items/${conversion(itemName)}.png`;
+        };
+      
+        static #onlyUnique(value, index, self) {
+          return self.indexOf(value) === index;
+        };
+        
         constructor({settings, seed, layout}) {
           this.seed = seed;
           this.settings = settings;
           this.cartridge = new Cartridge(settings, seed);
           this.generateCheckInfo(layout);
-          this.loadProgress();
+          const progress = this.loadProgress();
+          // set rupee value based on collected items
+          document.querySelector("#rupees").value = RupeeHelper.generateTotalBasedOnIndices(progress.collectedItemNames);
           document.querySelector("#seed").innerText = seed;
 
           Object.keys(this.subregionByCheck).forEach(checkName => {
@@ -131,7 +177,7 @@
           });
         }
 
-        resetProgress() {
+        async resetProgress() {
           if (
             !confirm("Are you sure you want to reset ALL items and checks?")
           ) {
@@ -139,8 +185,8 @@
           }
           localStorage.removeItem("collectedItemNames." + this.seed);
           localStorage.removeItem("visitedCheckNames." + this.seed);
-          refreshItems();
-          refreshChecks();
+          await this.refreshItems();
+          this.refreshChecks();
         }
 
         saveItemProgress(collectedItemNames) {
@@ -176,7 +222,7 @@
           const removeRupees = (itemName) => !itemName.includes("Rupee");
           const displayNameToIconAndRequest = ([internalName, displayName]) =>
             new Promise(async (resolve, reject) => {
-              const iconPath = displayNameToIconPath(
+              const iconPath = GameInfo.#displayNameToIconPath(
                 displayName.replace(/ \(.*/, "")
               );
               let requestSuccess = false;
@@ -198,7 +244,7 @@
             ) {
               return () => true;
             }
-            return onlyUnique(
+            return GameInfo.#onlyUnique(
               value.internalName,
               index,
               self.map((itemData) => itemData.internalName)
@@ -212,7 +258,7 @@
                 .filter(removeRupees)
                 .map((internalName) => [
                   internalName,
-                  internalNameToDisplayName(internalName),
+                  GameInfo.#internalNameToDisplayName(internalName),
                 ])
                 .map(displayNameToIconAndRequest)
             )
@@ -240,6 +286,261 @@
           this.itemByCheck = mapping;
           this.subregionByCheck = locationMapping;
         };
+
+
+        async refreshItems() {
+          const createElement = ({ internalName, displayName, iconPath }) => {
+            // create halfmoon css card with left-aligned and vertically centered image and title on same line
+            const card = document.createElement("div");
+            card.classList.add("card", "d-flex", "align-items-center");
+            card.dataset.internalName = internalName;
+
+            // add image to card
+            const cardImage = document.createElement("img");
+            cardImage.src = iconPath;
+            cardImage.style.marginRight = "10px";
+            card.appendChild(cardImage);
+            // add text to card
+            const cardText = document.createElement("p");
+            cardText.classList.add("card-body");
+            cardText.innerText = displayName;
+            card.appendChild(cardText);
+
+            // add hidden checkbox that gets toggled when card is clicked
+            const cardCheckbox = document.createElement("input");
+            cardCheckbox.type = "checkbox";
+            cardCheckbox.classList.add("d-none");
+            cardCheckbox.addEventListener("change", (e) => {
+              if (e.target.checked) {
+                card.classList.add("bg-primary");
+              } else {
+                card.classList.remove("bg-primary");
+              }
+            });
+            card.appendChild(cardCheckbox);
+
+            // add click event listener to card
+            card.addEventListener("click", () => {
+              // @TODO: Persist progression for current seed inside local storage
+              cardCheckbox.checked = !cardCheckbox.checked;
+              cardCheckbox.dispatchEvent(new Event("change"));
+              this.refreshChecks();
+            });
+
+            cardCheckbox.checked = window.gameInfo
+              .loadProgress()
+              .collectedItemNames.includes(internalName);
+            cardCheckbox.dispatchEvent(new Event("change"));
+            return card;
+          };
+
+          const progressionItemData =
+            await window.gameInfo.getListOfUsefulProgressionItems();
+          const itemListContainer = document.querySelector(
+            "#progressive-item-list"
+          );
+          itemListContainer.innerHTML = "";
+          progressionItemData.forEach((itemData) =>
+            document
+              .querySelector("#progressive-item-list")
+              .appendChild(createElement(itemData))
+          );
+        };
+
+        refreshChecks () {
+          let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
+          const collectedItems = Array.from(
+                                    document.querySelectorAll("#progressive-item-list .card")
+                                  ).map((e) => {
+                                    return {
+                                      checked: e.querySelector("input").checked,
+                                      internalName: e.dataset.internalName,
+                                    };
+                                  });
+          let collectedItemsNames = collectedItems
+            .filter((item) => item.checked)
+            .map((item) => item.internalName);
+
+          const calculateRupeesBasedOnTotal = RupeeHelper.generateIndicesBasedOnTotal(document.querySelector("#rupees").value);
+          collectedItemsNames = [...collectedItemsNames, ...calculateRupeesBasedOnTotal];
+          console.log(collectedItemsNames);
+          window.gameInfo.saveItemProgress(collectedItemsNames);
+
+          const allItems = [...window.gameInfo.cartridge.get_trash_item_names(), ...window.gameInfo.cartridge.get_progression_item_names()];
+          const totalChecks =
+            window.gameInfo.cartridge.get_available_checks(allItems);
+
+          const availableChecks =
+            window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
+
+          console.log("Available items: " + availableChecks);
+
+          const alreadyVisitedChecks =
+            window.gameInfo.loadProgress().visitedCheckNames;
+
+          const onlyChecksWithSubregion = (checkName) =>
+            window.gameInfo.subregionByCheck[checkName] !== undefined;
+
+          const alphabeticallyBySubregionAndRegion = (checkNameA, checkNameB) => {
+            const subregionA = window.gameInfo.subregionByCheck[checkNameA];
+            const subregionB = window.gameInfo.subregionByCheck[checkNameB];
+            if (subregionA[0] === subregionB[0]) {
+              if (subregionA[1] === subregionB[1]) {
+                return subregionA[2] < subregionB[2] ? -1 : 1;
+              }
+              return subregionA[1] < subregionB[1] ? -1 : 1;
+            }
+            return subregionA[0] < subregionB[0] ? -1 : 1;
+          };
+
+          const calculateLongestSubregionNameForTotalChecks = () => {
+            let levelAndLength = {};
+            totalChecks.forEach((checkName) => {
+              const subregion = window.gameInfo.subregionByCheck[checkName];
+              if (!subregion)
+              {
+                return;
+              }
+              for (let index = 0; index < subregion.length; index++) {
+                const element = subregion[index];
+                levelAndLength[index] = Math.max(
+                  levelAndLength[index] || 0,
+                  element.length
+                );
+              }
+            });
+            return levelAndLength;
+          };
+
+          const longestSubregionNameForTotalChecks = calculateLongestSubregionNameForTotalChecks();
+
+          const availableCheckCards = totalChecks
+            .filter(onlyChecksWithSubregion)
+            .sort(alphabeticallyBySubregionAndRegion)
+            .map((checkName) => {
+              const isAvailable = availableChecks.includes(checkName);
+              // create halfmoon css card with left-aligned and vertically centered image and title on same line
+              const card = document.createElement("div");
+              card.classList.add("card", "d-flex", "align-items-center");
+              if (!isAvailable) {
+                card.classList.add("bg-very-dark", "text-muted");
+              }
+              card.dataset.checkName = checkName;
+
+              // add hidden checkbox that gets toggled when card is clicked
+              const cardCheckbox = document.createElement("input");
+              cardCheckbox.type = "checkbox";
+              if (!isAvailable) {
+                cardCheckbox.disabled = true;
+              }
+              cardCheckbox.addEventListener("change", (e) => {
+                if (e.target.checked) {
+                  card.classList.remove("bg-primary");
+                } else {
+                  card.classList.add("bg-primary");
+                }
+
+                if (cardCheckbox.checked) {
+                  collectedChecks.push(checkName);
+                } else {
+                  collectedChecks = collectedChecks.filter(
+                    (check) => check !== checkName
+                  );
+                }
+
+                cardCheckbox.checked = !cardCheckbox.checked;
+              });
+              card.appendChild(cardCheckbox);
+
+              // create halfmoon breadcrumb element based on subregion array
+              const breadcrumb = document.createElement("nav");
+              breadcrumb.classList.add("breadcrumb", "text-monospace");
+              breadcrumb.style.width = "50%";
+              breadcrumb.style.flexGrow = "1";
+              breadcrumb.style.margin = "0";
+              breadcrumb.style.padding = "0";
+              breadcrumb.style.marginLeft = "auto";
+              breadcrumb.style.marginRight = "auto";
+              breadcrumb.style.marginBottom = "10px";
+              breadcrumb.style.marginTop = "10px";
+
+              window.gameInfo.subregionByCheck[checkName].forEach((subregionName, index) => {
+                const breadcrumbItem = document.createElement("p");
+                breadcrumbItem.classList.add("breadcrumb-item");
+                let spacesToAdd = longestSubregionNameForTotalChecks[index] - subregionName.length;
+                if (spacesToAdd > 0) {
+                  subregionName += "&nbsp;".repeat(spacesToAdd);
+                }
+                breadcrumbItem.innerHTML = subregionName;
+                breadcrumb.appendChild(breadcrumbItem);
+              });
+              card.appendChild(breadcrumb);
+
+              cardCheckbox.checked = collectedChecks.includes(checkName);
+              cardCheckbox.dispatchEvent(new Event("change"));
+
+              // add halfmoon button
+              const cardEye = document.createElement("i");
+              cardEye.classList.add("fas", "fa-eye-slash");
+
+              const cardButton = document.createElement("button");
+              cardButton.classList.add("btn", "btn-primary", "btn-sm");
+              cardButton.addEventListener("click", () => {
+                card.classList.toggle("show-spoiler");
+                cardEye.classList.toggle("fa-eye");
+                cardEye.classList.toggle("fa-eye-slash");
+              });
+              cardButton.appendChild(cardEye);
+              card.appendChild(cardButton);
+
+              // add item found at that check
+              const breakItem = document.createElement("div");
+              breakItem.classList.add("flex-break");
+              card.appendChild(breakItem);
+
+              // add item found at that check
+              const cardItem = document.createElement("p");
+              cardItem.classList.add("full-width", "spoiler-entry");
+              cardItem.innerText = GameInfo.#internalNameToDisplayName(window.gameInfo.itemByCheck[checkName]);
+              card.appendChild(cardItem);
+
+              // add click event listener to card
+              card.addEventListener("click", () => {
+                if (window.map.isInEditMode)
+                {
+                  window.map.setCurrentCheck(checkName);
+                  return;
+                }
+
+                if (window.map.marker[checkName])
+                {
+                  window.map.marker[checkName].fire("click");
+                  window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
+                }
+                // @TODO: Persist progression for current seed inside local storage
+                cardCheckbox.checked = !cardCheckbox.checked;
+                cardCheckbox.dispatchEvent(new Event("change"));
+                if (cardCheckbox.checked) {
+                  collectedChecks.push(checkName);
+                } else {
+                  collectedChecks = collectedChecks.filter(
+                    (check) => check !== checkName
+                  );
+                }
+              });
+
+              cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
+              cardCheckbox.dispatchEvent(new Event("change"));
+              return card;
+            }
+          );
+          const checkList = document.querySelector("#check-list");
+          checkList.innerHTML = "";
+          availableCheckCards.forEach((element) =>
+            document.querySelector("#check-list").appendChild(element)
+          );
+        };
+
       }
 
       const spoilerLog = {
@@ -588,307 +889,8 @@
       console.log(window.gameInfo.subregionByCheck);
       console.log(window.gameInfo.itemByCheck);
 
-      const generateIndicesBasedOnTotal = (currentCount) => {
-        const calculateRupeesUsedBasedOnTotal = (currentCount) => {
-            const group = {
-                Gold: 300,
-                Silver: 100,
-                Purple: 50,
-            };
-
-            const countAvailableRupees = () => {
-                const allRupees = window.gameInfo.cartridge.get_progression_item_names().filter(name => name.includes("Rupee"));
-                const countPerConversion = Object.fromEntries(Object.entries(group).map(([key, value]) => [key, allRupees.filter(name => name.includes(key)).length]));
-                return countPerConversion;
-            };
-
-            const availableRupeesByGroup = countAvailableRupees();
-
-            // attempt to reach currentCount as closely as possible while respecting the availableRupeesByGroup, first using the highest value group, then the second highest, etc.
-            let usedByGroup = {};
-            const result = Object.entries(group).sort((a, b) => b[1] - a[1]).reduce((acc, [key, value]) => {
-                const available = availableRupeesByGroup[key];
-                const needed = Math.min(Math.floor((currentCount - acc) / value), available);
-                usedByGroup[key] = needed;
-                return acc + needed * value;
-            }, 0);
-            return usedByGroup;
-        };
-
-
-        const currentGroup = calculateRupeesUsedBasedOnTotal(currentCount);
-        // rupees are index using "Rupee" + "Gold" | "Silver" | "Purple" + "Rupee" + "XX" where X is the number of the rupee prefixed with 0 if needed
-        const usedIndices = Object.entries(currentGroup).reduce((acc, [key, value]) => {
-            return acc.concat(Array.from(Array(value).keys()).map(i => `Rupee${key}${(i+1).toString().padStart(2, "0")}`));
-        }, []);
-        return usedIndices;
-      };
-
-      const refreshItems = async () => {
-        const createElement = ({ internalName, displayName, iconPath }) => {
-          // create halfmoon css card with left-aligned and vertically centered image and title on same line
-          const card = document.createElement("div");
-          card.classList.add("card", "d-flex", "align-items-center");
-          card.dataset.internalName = internalName;
-
-          // add image to card
-          const cardImage = document.createElement("img");
-          cardImage.src = iconPath;
-          cardImage.style.marginRight = "10px";
-          card.appendChild(cardImage);
-          // add text to card
-          const cardText = document.createElement("p");
-          cardText.classList.add("card-body");
-          cardText.innerText = displayName;
-          card.appendChild(cardText);
-
-          // add hidden checkbox that gets toggled when card is clicked
-          const cardCheckbox = document.createElement("input");
-          cardCheckbox.type = "checkbox";
-          cardCheckbox.classList.add("d-none");
-          cardCheckbox.addEventListener("change", (e) => {
-            if (e.target.checked) {
-              card.classList.add("bg-primary");
-            } else {
-              card.classList.remove("bg-primary");
-            }
-          });
-          card.appendChild(cardCheckbox);
-
-          // add click event listener to card
-          card.addEventListener("click", () => {
-            // @TODO: Persist progression for current seed inside local storage
-            cardCheckbox.checked = !cardCheckbox.checked;
-            cardCheckbox.dispatchEvent(new Event("change"));
-            refreshChecks();
-          });
-
-          cardCheckbox.checked = window.gameInfo
-            .loadProgress()
-            .collectedItemNames.includes(internalName);
-          cardCheckbox.dispatchEvent(new Event("change"));
-          return card;
-        };
-
-        const progressionItemData =
-          await window.gameInfo.getListOfUsefulProgressionItems();
-        const itemListContainer = document.querySelector(
-          "#progressive-item-list"
-        );
-        itemListContainer.innerHTML = "";
-        progressionItemData.forEach((itemData) =>
-          document
-            .querySelector("#progressive-item-list")
-            .appendChild(createElement(itemData))
-        );
-      };
-
-      const refreshChecks = () => {
-        let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
-        const collectedItems = Array.from(
-                                  document.querySelectorAll("#progressive-item-list .card")
-                                ).map((e) => {
-                                  return {
-                                    checked: e.querySelector("input").checked,
-                                    internalName: e.dataset.internalName,
-                                  };
-                                });
-        let collectedItemsNames = collectedItems
-          .filter((item) => item.checked)
-          .map((item) => item.internalName);
-
-        const calculateRupeesBasedOnTotal = generateIndicesBasedOnTotal(document.querySelector("#rupees").value);
-        collectedItemsNames = [...collectedItemsNames, ...calculateRupeesBasedOnTotal];
-        console.log(collectedItemsNames);
-        window.gameInfo.saveItemProgress(collectedItemsNames);
-
-        const allItems = [...window.gameInfo.cartridge.get_trash_item_names(), ...window.gameInfo.cartridge.get_progression_item_names()];
-        const totalChecks =
-          window.gameInfo.cartridge.get_available_checks(allItems);
-
-        const availableChecks =
-          window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
-
-        console.log("Available items: " + availableChecks);
-
-        const alreadyVisitedChecks =
-          window.gameInfo.loadProgress().visitedCheckNames;
-
-        const onlyChecksWithSubregion = (checkName) =>
-          window.gameInfo.subregionByCheck[checkName] !== undefined;
-
-        const alphabeticallyBySubregionAndRegion = (checkNameA, checkNameB) => {
-          const subregionA = window.gameInfo.subregionByCheck[checkNameA];
-          const subregionB = window.gameInfo.subregionByCheck[checkNameB];
-          if (subregionA[0] === subregionB[0]) {
-            if (subregionA[1] === subregionB[1]) {
-              return subregionA[2] < subregionB[2] ? -1 : 1;
-            }
-            return subregionA[1] < subregionB[1] ? -1 : 1;
-          }
-          return subregionA[0] < subregionB[0] ? -1 : 1;
-        };
-
-        const calculateLongestSubregionNameForTotalChecks = () => {
-          let levelAndLength = {};
-          totalChecks.forEach((checkName) => {
-            const subregion = window.gameInfo.subregionByCheck[checkName];
-            if (!subregion)
-            {
-              return;
-            }
-            for (let index = 0; index < subregion.length; index++) {
-              const element = subregion[index];
-              levelAndLength[index] = Math.max(
-                levelAndLength[index] || 0,
-                element.length
-              );
-            }
-          });
-          return levelAndLength;
-        };
-
-        const longestSubregionNameForTotalChecks = calculateLongestSubregionNameForTotalChecks();
-
-        const availableCheckCards = totalChecks
-          .filter(onlyChecksWithSubregion)
-          .sort(alphabeticallyBySubregionAndRegion)
-          .map((checkName) => {
-            const isAvailable = availableChecks.includes(checkName);
-            // create halfmoon css card with left-aligned and vertically centered image and title on same line
-            const card = document.createElement("div");
-            card.classList.add("card", "d-flex", "align-items-center");
-            if (!isAvailable) {
-              card.classList.add("bg-very-dark", "text-muted");
-            }
-            card.dataset.checkName = checkName;
-
-            // add hidden checkbox that gets toggled when card is clicked
-            const cardCheckbox = document.createElement("input");
-            cardCheckbox.type = "checkbox";
-            if (!isAvailable) {
-              cardCheckbox.disabled = true;
-            }
-            cardCheckbox.addEventListener("change", (e) => {
-              if (e.target.checked) {
-                card.classList.remove("bg-primary");
-              } else {
-                card.classList.add("bg-primary");
-              }
-
-              if (cardCheckbox.checked) {
-                collectedChecks.push(checkName);
-              } else {
-                collectedChecks = collectedChecks.filter(
-                  (check) => check !== checkName
-                );
-              }
-
-              cardCheckbox.checked = !cardCheckbox.checked;
-            });
-            card.appendChild(cardCheckbox);
-
-            // create halfmoon breadcrumb element based on subregion array
-            const breadcrumb = document.createElement("nav");
-            breadcrumb.classList.add("breadcrumb", "text-monospace");
-            breadcrumb.style.width = "50%";
-            breadcrumb.style.flexGrow = "1";
-            breadcrumb.style.margin = "0";
-            breadcrumb.style.padding = "0";
-            breadcrumb.style.marginLeft = "auto";
-            breadcrumb.style.marginRight = "auto";
-            breadcrumb.style.marginBottom = "10px";
-            breadcrumb.style.marginTop = "10px";
-
-            window.gameInfo.subregionByCheck[checkName].forEach((subregionName, index) => {
-              const breadcrumbItem = document.createElement("p");
-              breadcrumbItem.classList.add("breadcrumb-item");
-              let spacesToAdd = longestSubregionNameForTotalChecks[index] - subregionName.length;
-              if (spacesToAdd > 0) {
-                subregionName += "&nbsp;".repeat(spacesToAdd);
-              }
-              breadcrumbItem.innerHTML = subregionName;
-              breadcrumb.appendChild(breadcrumbItem);
-            });
-            card.appendChild(breadcrumb);
-
-            cardCheckbox.checked = collectedChecks.includes(checkName);
-            cardCheckbox.dispatchEvent(new Event("change"));
-
-            // add halfmoon button
-            const cardEye = document.createElement("i");
-            cardEye.classList.add("fas", "fa-eye-slash");
-
-            const cardButton = document.createElement("button");
-            cardButton.classList.add("btn", "btn-primary", "btn-sm");
-            cardButton.addEventListener("click", () => {
-              card.classList.toggle("show-spoiler");
-              cardEye.classList.toggle("fa-eye");
-              cardEye.classList.toggle("fa-eye-slash");
-            });
-            cardButton.appendChild(cardEye);
-            card.appendChild(cardButton);
-
-            // add item found at that check
-            const breakItem = document.createElement("div");
-            breakItem.classList.add("flex-break");
-            card.appendChild(breakItem);
-
-            // add item found at that check
-            const cardItem = document.createElement("p");
-            cardItem.classList.add("full-width", "spoiler-entry");
-            cardItem.innerText = internalNameToDisplayName(window.gameInfo.itemByCheck[checkName]);
-            card.appendChild(cardItem);
-
-            // add click event listener to card
-            card.addEventListener("click", () => {
-              if (window.map.isInEditMode)
-              {
-                window.map.setCurrentCheck(checkName);
-                return;
-              }
-
-              if (window.map.marker[checkName])
-              {
-                window.map.marker[checkName].fire("click");
-                window.map.map.jumpTo({center: window.map.marker[checkName].getLngLat(), zoom: 12});
-              }
-              // @TODO: Persist progression for current seed inside local storage
-              cardCheckbox.checked = !cardCheckbox.checked;
-              cardCheckbox.dispatchEvent(new Event("change"));
-              if (cardCheckbox.checked) {
-                collectedChecks.push(checkName);
-              } else {
-                collectedChecks = collectedChecks.filter(
-                  (check) => check !== checkName
-                );
-              }
-            });
-
-            cardCheckbox.checked = alreadyVisitedChecks.includes(checkName);
-            cardCheckbox.dispatchEvent(new Event("change"));
-            return card;
-          }
-        );
-        const checkList = document.querySelector("#check-list");
-        checkList.innerHTML = "";
-        availableCheckCards.forEach((element) =>
-          document.querySelector("#check-list").appendChild(element)
-        );
-      };
-
-      await refreshItems();
-      refreshChecks();
-
-      if (document.querySelector("#rupees"))
-      {
-        document.querySelector("#rupees").addEventListener("change", refreshChecks);
-      } else
-      {
-        window.addEventListener("load", () => {
-          document.querySelector("#rupees").addEventListener("change", refreshChecks);
-        });
-      }
+      await window.gameInfo.refreshItems();
+      window.gameInfo.refreshChecks();
     </script>
 
     <div class="page-wrapper with-navbar">
@@ -924,6 +926,7 @@
                 class="form-control"
                 id="rupees"
                 value="0"
+                onchange="window.gameInfo.refreshChecks()"
               />
             </div>
             <div class="checklist" id="progressive-item-list"></div>
