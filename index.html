@@ -48,14 +48,14 @@
       }
     </style>
     <script>
-      window.onload = () => {
+      window.addEventListener("load", function () {
         if (
           window.matchMedia &&
           window.matchMedia("(prefers-color-scheme: dark)").matches
         ) {
           halfmoon.toggleDarkMode();
         }
-      };
+      });
     </script>
   </head>
   <body>
@@ -589,17 +589,41 @@
       console.log(window.gameInfo.subregionByCheck);
       console.log(window.gameInfo.itemByCheck);
 
-      // @TODO: Explicitly add Ravios bracelet
+      const generateIndicesBasedOnTotal = (currentCount) => {
+        const calculateRupeesUsedBasedOnTotal = (currentCount) => {
+            const group = {
+                Gold: 300,
+                Silver: 100,
+                Purple: 50,
+            };
 
-      const getCurrentlyCollectedItemCards = () =>
-        Array.from(
-          document.querySelectorAll("#progressive-item-list .card")
-        ).map((e) => {
-          return {
-            checked: e.querySelector("input").checked,
-            internalName: e.dataset.internalName,
-          };
-        });
+            const countAvailableRupees = () => {
+                const allRupees = window.gameInfo.cartridge.get_progression_item_names().filter(name => name.includes("Rupee"));
+                const countPerConversion = Object.fromEntries(Object.entries(group).map(([key, value]) => [key, allRupees.filter(name => name.includes(key)).length]));
+                return countPerConversion;
+            };
+
+            const availableRupeesByGroup = countAvailableRupees();
+
+            // attempt to reach currentCount as closely as possible while respecting the availableRupeesByGroup, first using the highest value group, then the second highest, etc.
+            let usedByGroup = {};
+            const result = Object.entries(group).sort((a, b) => b[1] - a[1]).reduce((acc, [key, value]) => {
+                const available = availableRupeesByGroup[key];
+                const needed = Math.min(Math.floor((currentCount - acc) / value), available);
+                usedByGroup[key] = needed;
+                return acc + needed * value;
+            }, 0);
+            return usedByGroup;
+        };
+
+
+        const currentGroup = calculateRupeesUsedBasedOnTotal(currentCount);
+        // rupees are index using "Rupee" + "Gold" | "Silver" | "Purple" + "Rupee" + "XX" where X is the number of the rupee prefixed with 0 if needed
+        const usedIndices = Object.entries(currentGroup).reduce((acc, [key, value]) => {
+            return acc.concat(Array.from(Array(value).keys()).map(i => `Rupee${key}${(i+1).toString().padStart(2, "0")}`));
+        }, []);
+        return usedIndices;
+      };
 
       const refreshItems = async () => {
         const createElement = ({ internalName, displayName, iconPath }) => {
@@ -637,13 +661,7 @@
             // @TODO: Persist progression for current seed inside local storage
             cardCheckbox.checked = !cardCheckbox.checked;
             cardCheckbox.dispatchEvent(new Event("change"));
-            const currentlyCollectedItems = getCurrentlyCollectedItemCards();
-            refreshChecks(currentlyCollectedItems);
-            window.gameInfo.saveItemProgress(
-              currentlyCollectedItems
-                .filter((a) => a.checked)
-                .map((item) => item.internalName)
-            );
+            refreshChecks();
           });
 
           cardCheckbox.checked = window.gameInfo
@@ -668,13 +686,31 @@
 
       const refreshChecks = () => {
         let collectedChecks = window.gameInfo.loadProgress().visitedCheckNames;
-        const collectedItems = getCurrentlyCollectedItemCards();
-        const collectedItemsNames = collectedItems
+        const collectedItems = Array.from(
+                                  document.querySelectorAll("#progressive-item-list .card")
+                                ).map((e) => {
+                                  return {
+                                    checked: e.querySelector("input").checked,
+                                    internalName: e.dataset.internalName,
+                                  };
+                                });
+        let collectedItemsNames = collectedItems
           .filter((item) => item.checked)
           .map((item) => item.internalName);
 
+        const calculateRupeesBasedOnTotal = generateIndicesBasedOnTotal(document.querySelector("#rupees").value);
+        collectedItemsNames = [...collectedItemsNames, ...calculateRupeesBasedOnTotal];
+        console.log(collectedItemsNames);
+        window.gameInfo.saveItemProgress(collectedItemsNames);
+
+        const allItems = [...window.gameInfo.cartridge.get_trash_item_names(), ...window.gameInfo.cartridge.get_progression_item_names()];
+        const totalChecks =
+          window.gameInfo.cartridge.get_available_checks(allItems);
+
         const availableChecks =
           window.gameInfo.cartridge.get_available_checks(collectedItemsNames);
+
+        console.log("Available items: " + availableChecks);
 
         const alreadyVisitedChecks =
           window.gameInfo.loadProgress().visitedCheckNames;
@@ -694,9 +730,9 @@
           return subregionA[0] < subregionB[0] ? -1 : 1;
         };
 
-        const calculateLongestSubregionNameForAllAvailableChecks = () => {
+        const calculateLongestSubregionNameForTotalChecks = () => {
           let levelAndLength = {};
-          availableChecks.forEach((checkName) => {
+          totalChecks.forEach((checkName) => {
             const subregion = window.gameInfo.subregionByCheck[checkName];
             if (!subregion)
             {
@@ -713,20 +749,27 @@
           return levelAndLength;
         };
 
-        const longestSubregionNameForAllAvailableChecks = calculateLongestSubregionNameForAllAvailableChecks();
+        const longestSubregionNameForTotalChecks = calculateLongestSubregionNameForTotalChecks();
 
-        const availableCheckCards = availableChecks
+        const availableCheckCards = totalChecks
           .filter(onlyChecksWithSubregion)
           .sort(alphabeticallyBySubregionAndRegion)
           .map((checkName) => {
+            const isAvailable = availableChecks.includes(checkName);
             // create halfmoon css card with left-aligned and vertically centered image and title on same line
             const card = document.createElement("div");
             card.classList.add("card", "d-flex", "align-items-center");
+            if (!isAvailable) {
+              card.classList.add("bg-very-dark", "text-muted");
+            }
             card.dataset.checkName = checkName;
 
             // add hidden checkbox that gets toggled when card is clicked
             const cardCheckbox = document.createElement("input");
             cardCheckbox.type = "checkbox";
+            if (!isAvailable) {
+              cardCheckbox.disabled = true;
+            }
             cardCheckbox.addEventListener("change", (e) => {
               if (e.target.checked) {
                 card.classList.remove("bg-primary");
@@ -743,7 +786,6 @@
               }
 
               cardCheckbox.checked = !cardCheckbox.checked;
-              cardCheckbox.dispatchEvent(new Event("change"));
             });
             card.appendChild(cardCheckbox);
 
@@ -762,7 +804,7 @@
             window.gameInfo.subregionByCheck[checkName].forEach((subregionName, index) => {
               const breadcrumbItem = document.createElement("p");
               breadcrumbItem.classList.add("breadcrumb-item");
-              let spacesToAdd = longestSubregionNameForAllAvailableChecks[index] - subregionName.length;
+              let spacesToAdd = longestSubregionNameForTotalChecks[index] - subregionName.length;
               if (spacesToAdd > 0) {
                 subregionName += "&nbsp;".repeat(spacesToAdd);
               }
@@ -838,6 +880,16 @@
 
       await refreshItems();
       refreshChecks();
+
+      if (document.querySelector("#rupees"))
+      {
+        document.querySelector("#rupees").addEventListener("change", refreshChecks);
+      } else
+      {
+        window.addEventListener("load", () => {
+          document.querySelector("#rupees").addEventListener("change", refreshChecks);
+        });
+      }
     </script>
 
     <div class="page-wrapper with-navbar">
@@ -863,6 +915,18 @@
         <div class="lists">
           <div class="checklist-wrapper">
             <h2 class="page-title">Items</h2>
+            <!-- number input for rupees -->
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Rupees</span>
+              </div>
+              <input
+                type="number"
+                class="form-control"
+                id="rupees"
+                value="0"
+              />
+            </div>
             <div class="checklist" id="progressive-item-list"></div>
           </div>
           <div class="checklist-wrapper">
@@ -937,6 +1001,10 @@
   
             .checklist .card.bg-primary {
               order: 2;
+            }
+            
+            .checklist .card.bg-very-dark {
+              order: 3;
             }
   
             .checklist img {
